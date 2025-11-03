@@ -182,9 +182,13 @@ MonoBehaviour:
   separationStrength: 3
   avoidPlayerRadius: 0.4
   avoidPlayerStrength: 3
+  orbitAngularSpeed: 110
+  idleOrbitTightFactor: 0.3
   leashStrength: 200
   leashBuffer: 0.07
   forceTriggerCollider: 1
+  maxAngularSpeed: 220
+  minAngleDelta: 2
 --- !u!114 &2427157489824375304
 MonoBehaviour:
   m_ObjectHideFlags: 0
