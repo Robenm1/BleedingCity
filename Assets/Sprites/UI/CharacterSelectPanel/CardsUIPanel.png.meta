@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f88fc9ba3d0034f4a9d14267afefa929
+guid: 7e7dd7b8f80647244abd28d1f9f6a5f6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8865886399594565849
-    second: DezzoSharkStorm_0
+      213: 1060270347349202037
+    second: CardsUIPanel_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: DezzoSharkStorm_0
+      name: CardsUIPanel_0
       rect:
         serializedVersion: 2
-        x: 249
-        y: 49
-        width: 712
-        height: 1102
+        x: 0
+        y: 0
+        width: 18
+        height: 29
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 72fe2350b4b06f480800000000000000
-      internalID: -8865886399594565849
+      spriteID: 57411ab6346d6be00800000000000000
+      internalID: 1060270347349202037
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      DezzoSharkStorm_0: -8865886399594565849
+      CardsUIPanel_0: 1060270347349202037
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

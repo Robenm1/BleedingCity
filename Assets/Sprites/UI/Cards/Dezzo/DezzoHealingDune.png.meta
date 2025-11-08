@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f88fc9ba3d0034f4a9d14267afefa929
+guid: 80def44be2c945b43bda7dc03a0866ef
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8865886399594565849
-    second: DezzoSharkStorm_0
+      213: 5332196330280483565
+    second: DezzoHealingDune_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,12 +126,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: DezzoSharkStorm_0
+      name: DezzoHealingDune_0
       rect:
         serializedVersion: 2
         x: 249
         y: 49
-        width: 712
+        width: 702
         height: 1102
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 72fe2350b4b06f480800000000000000
-      internalID: -8865886399594565849
+      spriteID: dea720baf44cff940800000000000000
+      internalID: 5332196330280483565
       vertices: []
       indices: 
       edges: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      DezzoSharkStorm_0: -8865886399594565849
+      DezzoHealingDune_0: 5332196330280483565
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f88fc9ba3d0034f4a9d14267afefa929
+guid: 374703aa043f01c47a3aafcd2e79bab1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8865886399594565849
-    second: DezzoSharkStorm_0
+      213: -914720279875046676
+    second: DezzoIconSelect_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: DezzoSharkStorm_0
+      name: DezzoIconSelect_0
       rect:
         serializedVersion: 2
-        x: 249
-        y: 49
-        width: 712
-        height: 1102
+        x: 0
+        y: 0
+        width: 1280
+        height: 1280
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 72fe2350b4b06f480800000000000000
-      internalID: -8865886399594565849
+      spriteID: ce2b33970c24e43f0800000000000000
+      internalID: -914720279875046676
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      DezzoSharkStorm_0: -8865886399594565849
+      DezzoIconSelect_0: -914720279875046676
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

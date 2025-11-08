@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Enemy
   - Collectable
+  - CardPreviewPanel
   layers:
   - Default
   - TransparentFX

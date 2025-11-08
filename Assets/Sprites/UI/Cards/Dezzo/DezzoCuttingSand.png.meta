@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f88fc9ba3d0034f4a9d14267afefa929
+guid: 801d8e8eb20d0854ea4f1d32ddb15cb5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8865886399594565849
-    second: DezzoSharkStorm_0
+      213: -3906817502737204054
+    second: DezzoCuttingSand_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,23 +126,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: DezzoSharkStorm_0
+      name: DezzoCuttingSand_0
       rect:
         serializedVersion: 2
         x: 249
         y: 49
-        width: 712
-        height: 1102
+        width: 699
+        height: 1097
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 72fe2350b4b06f480800000000000000
-      internalID: -8865886399594565849
+      spriteID: aacf1133e2238c9c0800000000000000
+      internalID: -3906817502737204054
       vertices: []
       indices: 
       edges: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: fecabf393ff884c4c9334fcb07cda84c
     internalID: 0
     vertices: []
     indices: 
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      DezzoSharkStorm_0: -8865886399594565849
+      DezzoCuttingSand_0: -3906817502737204054
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
