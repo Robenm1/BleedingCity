@@ -7,7 +7,7 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("The player to chase. If empty, we'll search for tag 'Player'.")]
     public Transform playerTarget;
 
-    private Rigidbody2D playerRB;  // to read player's velocity
+    private Rigidbody2D playerRB;   // to read player's velocity
     private PlayerHealth playerHealth;
 
     [Header("Chase Settings")]
@@ -34,7 +34,7 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Time between damage ticks from THIS enemy (seconds).")]
     public float tickInterval = 0.5f;
 
-    [Tooltip("Require the player to be 'stuck' (low relative speed) to take damage.")]
+    [Tooltip("Require the player to be 'stuck' (low relative speed) to take collision damage.")]
     public bool requireLowRelativeSpeed = true;
 
     [Tooltip("Relative speed threshold under which we consider them 'stuck'.")]
@@ -43,9 +43,25 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Require collision to persist at least this long before the first tick.")]
     public float minimumContactTime = 0.1f;
 
+    // ================= STOP-AREA DAMAGE (trigger-based) =================
+    [Header("Stop Area Damage (Trigger)")]
+    [Tooltip("If true, the player takes damage when this enemy touches the player's 'stop area' trigger.")]
+    public bool damageOnStopArea = true;
+
+    [Tooltip("Use tag match for the stop area. If false, use the layer mask.")]
+    public bool useTagForStopArea = true;
+
+    [Tooltip("Tag to identify the player's stop-area trigger.")]
+    public string stopAreaTag = "PlayerStopArea";
+
+    [Tooltip("Layer(s) for the player's stop-area trigger if not using tag.")]
+    public LayerMask stopAreaLayers;
+
+    // timers
     private float _nextDamageTime = 0f;
     private float _contactTimer = 0f;
 
+    // sidestep
     private bool isSidestepping = false;
     private float sidestepTimer = 0f;
     private Vector2 sidestepDirection;
@@ -57,6 +73,20 @@ public class EnemyFollow : MonoBehaviour
     private Vector2 chaseCurrentVelocity;
     private Vector2 chaseVelSmoothRef;
 
+    // reacquire timing if player missing
+    private float _retryFindTimer = 0f;
+
+    private void OnEnable()
+    {
+        // Subscribe to player spawn/changes (works with anchor spawn)
+        PlayerLocator.OnPlayerChanged += HandlePlayerChanged;
+    }
+
+    private void OnDisable()
+    {
+        PlayerLocator.OnPlayerChanged -= HandlePlayerChanged;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -66,24 +96,34 @@ public class EnemyFollow : MonoBehaviour
 
     private void Start()
     {
+        // Prefer the global locator (works even if player spawned after enemies)
+        if (playerTarget == null && PlayerLocator.Current != null)
+            BindTarget(PlayerLocator.Current);
+
+        // Fallback: find by tag once
         if (playerTarget == null)
         {
             var p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) playerTarget = p.transform;
+            if (p != null) BindTarget(p.transform);
         }
+    }
 
-        if (playerTarget != null)
+    private void Update()
+    {
+        // If target lost (e.g., respawned), try to reacquire periodically
+        if (playerTarget == null)
         {
-            playerRB = playerTarget.GetComponent<Rigidbody2D>();
-            playerHealth = playerTarget.GetComponent<PlayerHealth>();
-            if (playerRB == null)
-                Debug.LogWarning("[EnemyFollow] Player has no Rigidbody2D. Sidestep logic limited.");
-            if (playerHealth == null)
-                Debug.LogWarning("[EnemyFollow] Player has no PlayerHealth. Cannot apply damage.");
-        }
-        else
-        {
-            Debug.LogWarning("[EnemyFollow] No playerTarget and no 'Player' tag found.");
+            _retryFindTimer -= Time.deltaTime;
+            if (_retryFindTimer <= 0f)
+            {
+                _retryFindTimer = 0.5f;
+                if (PlayerLocator.Current != null) BindTarget(PlayerLocator.Current);
+                else
+                {
+                    var p = GameObject.FindGameObjectWithTag("Player");
+                    if (p != null) BindTarget(p.transform);
+                }
+            }
         }
     }
 
@@ -145,11 +185,6 @@ public class EnemyFollow : MonoBehaviour
         return dot >= approachDotThreshold;
     }
 
-    private void BeginSidesteppingFallbackIfNoRB(Vector2 toPlayer)
-    {
-        // kept for clarity if you want a variant; not used now
-    }
-
     private void BeginSidestep(Vector2 toPlayer)
     {
         isSidestepping = true;
@@ -189,26 +224,48 @@ public class EnemyFollow : MonoBehaviour
         }
     }
 
-    // ================= COLLISION DAMAGE (only when sticking) =================
+    // ================= TARGET BINDING =================
+    private void HandlePlayerChanged(Transform t)
+    {
+        BindTarget(t);
+    }
+
+    private void BindTarget(Transform t)
+    {
+        playerTarget = t;
+        playerRB = playerTarget ? playerTarget.GetComponent<Rigidbody2D>() : null;
+        playerHealth = playerTarget ? playerTarget.GetComponent<PlayerHealth>() : null;
+
+        if (playerTarget == null)
+            Debug.LogWarning("[EnemyFollow] Player target cleared.");
+        else
+        {
+            if (playerRB == null)
+                Debug.LogWarning("[EnemyFollow] Player has no Rigidbody2D. Sidestep logic limited.");
+            if (playerHealth == null)
+                Debug.LogWarning("[EnemyFollow] Player has no PlayerHealth. Cannot apply damage.");
+        }
+    }
+
+    // ================= COLLISION DAMAGE (when physically touching player) =================
     private void OnCollisionStay2D(Collision2D collision)
     {
         if (playerHealth == null) return;
 
-        // Only react to the player (root)
+        // Only react to the player root object
         if (!collision.collider.CompareTag("Player") &&
             !(collision.rigidbody && collision.rigidbody.gameObject.CompareTag("Player")))
             return;
 
+        // measure sustained contact time
         _contactTimer += Time.deltaTime;
-
-        // Require sustained contact time
         if (_contactTimer < Mathf.Max(0f, minimumContactTime)) return;
 
-        // If we require “stuck” feeling, check relative speed
+        // optional "stuck" feeling: need low relative speed
         if (requireLowRelativeSpeed)
         {
             float relSpeed = 0f;
-            Vector2 selfVel = chaseCurrentVelocity; // our kinematic "intent" velocity
+            Vector2 selfVel = chaseCurrentVelocity; // our kinematic intent
             if (playerRB != null)
                 relSpeed = (playerRB.linearVelocity - selfVel).magnitude;
             else
@@ -217,12 +274,7 @@ public class EnemyFollow : MonoBehaviour
             if (relSpeed > relativeSpeedThreshold) return;
         }
 
-        // Rate-limit damage ticks from THIS enemy
-        if (Time.time < _nextDamageTime) return;
-
-        float dealt = playerHealth.ApplyDamage(contactDamage);
-        if (dealt > 0f)
-            _nextDamageTime = Time.time + Mathf.Max(0f, tickInterval);
+        TryTickDamage();
     }
 
     private void OnCollisionExit2D(Collision2D collision)
@@ -232,5 +284,56 @@ public class EnemyFollow : MonoBehaviour
             return;
 
         _contactTimer = 0f;
+    }
+
+    // ================= STOP-AREA DAMAGE (when touching player's stop ring trigger) =================
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (!damageOnStopArea || playerHealth == null) return;
+
+        // Must belong to the current player's stop frame
+        if (useTagForStopArea)
+        {
+            if (!other.CompareTag(stopAreaTag)) return;
+        }
+        else
+        {
+            if (((1 << other.gameObject.layer) & stopAreaLayers.value) == 0) return;
+        }
+
+        // Also ensure this stop area belongs to our current player (avoid edge cases)
+        // Check the root of the trigger we hit
+        Transform root = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform.root;
+        if (playerTarget == null || (root != playerTarget && root != playerTarget.root)) return;
+
+        // For stop-area triggers we do not require "stuck" speed or min time;
+        // but we still respect tickInterval to rate-limit.
+        TryTickDamage();
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (!damageOnStopArea) return;
+
+        if (useTagForStopArea)
+        {
+            if (!other.CompareTag(stopAreaTag)) return;
+        }
+        else
+        {
+            if (((1 << other.gameObject.layer) & stopAreaLayers.value) == 0) return;
+        }
+
+        _contactTimer = 0f; // reset just in case (shared timer)
+    }
+
+    // ================= DAMAGE TICK HELPER =================
+    private void TryTickDamage()
+    {
+        if (Time.time < _nextDamageTime) return;
+
+        float dealt = playerHealth.ApplyDamage(contactDamage);
+        if (dealt > 0f)
+            _nextDamageTime = Time.time + Mathf.Max(0f, tickInterval);
     }
 }

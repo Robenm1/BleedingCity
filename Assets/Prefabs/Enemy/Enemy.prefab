@@ -828,6 +828,12 @@ MonoBehaviour:
   requireLowRelativeSpeed: 1
   relativeSpeedThreshold: 0.5
   minimumContactTime: 0.1
+  damageOnStopArea: 1
+  useTagForStopArea: 1
+  stopAreaTag: PlayerStopArea
+  stopAreaLayers:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!114 &2705734652969819118
 MonoBehaviour:
   m_ObjectHideFlags: 0

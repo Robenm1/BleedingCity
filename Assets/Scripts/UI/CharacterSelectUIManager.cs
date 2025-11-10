@@ -4,7 +4,7 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 
-public class CharacterSelectUIManager : MonoBehaviour
+public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
 {
     [Header("Large Display (Left page)")]
     public Image selectedIconImage;
@@ -12,11 +12,11 @@ public class CharacterSelectUIManager : MonoBehaviour
     public TextMeshProUGUI descriptionText;
 
     [Header("Pool Panels in #6 (fixed panels)")]
-    public RectTransform[] topRowSlots;
-    public RectTransform[] bottomRowSlots;
+    public RectTransform[] topRowSlots;     // character specials (row 1)
+    public RectTransform[] bottomRowSlots;  // global cards (row 2)
 
     [Header("Deck Panels (#4)")]
-    public RectTransform[] deckSlots;
+    public RectTransform[] deckSlots;       // fixed deck slots (children hold CardButton)
 
     [Header("Prefabs")]
     public CardButton cardButtonPrefab;
@@ -35,8 +35,24 @@ public class CharacterSelectUIManager : MonoBehaviour
     public float shakeSpeed = 20f;
     public float shakeRotDegrees = 5f;
 
+    [Header("Flow (optional)")]
+    [Tooltip("CharacterSelectFlow. If not assigned, auto-found at runtime.")]
+    public CharacterSelectFlow flowRef;
+
     [Header("State (read-only)")]
     public CharacterData currentSelection;
+
+    // ===== Expose current deck to CharacterSelectFlow =====
+    public List<CardData> CurrentDeck
+    {
+        get
+        {
+            var list = new List<CardData>(_deckButtons.Count);
+            foreach (var b in _deckButtons)
+                if (b && b.card) list.Add(b.card);
+            return list;
+        }
+    }
 
     // runtime
     private readonly List<CardButton> _spawnedPoolButtons = new();
@@ -51,13 +67,16 @@ public class CharacterSelectUIManager : MonoBehaviour
 
     private void Awake()
     {
+        // Auto-find flow if not assigned
+        if (!flowRef) flowRef = FindObjectOfType<CharacterSelectFlow>();
+
         if (selectedIconImage)
         {
             _iconRT = selectedIconImage.rectTransform;
             _originalSize = _iconRT.sizeDelta;
             selectedIconImage.preserveAspect = true;
             selectedIconImage.sprite = null;
-            selectedIconImage.enabled = false;
+            selectedIconImage.enabled = false; // hide until a character is chosen
         }
         if (nameText) nameText.text = string.Empty;
         if (descriptionText) descriptionText.text = string.Empty;
@@ -72,23 +91,22 @@ public class CharacterSelectUIManager : MonoBehaviour
         UnlockAllCharacters();
     }
 
-    // ===== Character select (from CharacterButton) =====
+    // ======================= Character select (from CharacterButton) =======================
     public void SelectCharacter(CharacterData data)
     {
-        // If locked to another character and user clicked a different one: do NOTHING (optional shake).
+        // If locked to another character and user clicked a different one: block and shake
         if (_lockedCharacter != null && data != _lockedCharacter)
         {
             if (enableLockShake) ShakeNonGlobalDeckCards();
-            return; // <-- critical: no rebuild, no text/icon changes => no twitch
+            return; // no UI twitch / rebuild
         }
 
-        // If the selection didn't actually change, do nothing.
-        if (data == currentSelection)
-            return;
+        // If same selection, ignore
+        if (data == currentSelection) return;
 
         currentSelection = data;
 
-        // Update big portrait + texts
+        // Update portrait + texts
         if (selectedIconImage)
         {
             if (data && data.selectedIcon)
@@ -107,12 +125,15 @@ public class CharacterSelectUIManager : MonoBehaviour
         if (nameText) nameText.text = data ? data.displayName : string.Empty;
         if (descriptionText) descriptionText.text = data ? data.description : string.Empty;
 
-        // Rebuild pool only when we truly changed character
+        // Rebuild pool only when selection truly changes
         RebuildPoolIntoFixedSlots();
         RefreshPoolPickedStates();
+
+        // Let flow re-validate (e.g., if minCardsRequired==0 it can enable)
+        if (flowRef) flowRef.OnDeckChanged();
     }
 
-    // ===== Pool → Deck (panel children) =====
+    // ======================= Pool → Deck (panel children) =======================
     public bool TryAddCardToDeck(CardButton poolButton)
     {
         if (!poolButton || poolButton.card == null) return false;
@@ -145,6 +166,10 @@ public class CharacterSelectUIManager : MonoBehaviour
 
         poolButton.SetPicked(true);
         RefreshPoolPickedStates();
+
+        // Notify flow so Start button updates immediately
+        if (flowRef) flowRef.OnDeckChanged();
+
         return true;
     }
 
@@ -162,14 +187,18 @@ public class CharacterSelectUIManager : MonoBehaviour
 
         RefreshPoolPickedStates();
 
+        // If no non-global cards left, unlock all characters
         if (NoNonGlobalCardsInDeck())
         {
             _lockedCharacter = null;
             UnlockAllCharacters();
         }
+
+        // Notify flow
+        if (flowRef) flowRef.OnDeckChanged();
     }
 
-    // ===== Build pool into fixed slots =====
+    // ======================= Build pool into fixed slots =======================
     private void RebuildPoolIntoFixedSlots()
     {
         ClearPoolVisualsOnly();
@@ -177,8 +206,8 @@ public class CharacterSelectUIManager : MonoBehaviour
         var specials = (currentSelection && currentSelection.specialCards != null)
             ? currentSelection.specialCards
             : new List<CardData>();
-        FillRow(topRowSlots, specials);
 
+        FillRow(topRowSlots, specials);
         FillRow(bottomRowSlots, globalCards);
     }
 
@@ -207,21 +236,18 @@ public class CharacterSelectUIManager : MonoBehaviour
         }
     }
 
-    // ===== Helpers =====
+    // ======================= Helpers =======================
     private RectTransform FirstEmptyDeckPanel()
     {
         if (deckSlots == null) return null;
         foreach (var slot in deckSlots)
         {
             if (!slot) continue;
+
             bool hasCard = false;
             for (int i = 0; i < slot.childCount; i++)
             {
-                if (slot.GetChild(i).GetComponent<CardButton>())
-                {
-                    hasCard = true;
-                    break;
-                }
+                if (slot.GetChild(i).GetComponent<CardButton>()) { hasCard = true; break; }
             }
             if (!hasCard) return slot;
         }
@@ -231,9 +257,7 @@ public class CharacterSelectUIManager : MonoBehaviour
     private bool NoNonGlobalCardsInDeck()
     {
         foreach (var b in _deckButtons)
-        {
             if (b && b.card && !b.card.isGlobal) return false;
-        }
         return true;
     }
 
@@ -300,7 +324,7 @@ public class CharacterSelectUIManager : MonoBehaviour
         CleanupRow(deckSlots);
     }
 
-    // ===== Character locking visuals =====
+    // ======================= Character locking visuals =======================
     private void LockOtherCharacters(CharacterData keepActive)
     {
         if (characterButtons == null) return;
@@ -308,7 +332,7 @@ public class CharacterSelectUIManager : MonoBehaviour
         {
             if (!cb) continue;
             bool isOwner = (cb.character == keepActive);
-            cb.SetLocked(!isOwner); // owner normal; others dark (still clickable if your CharacterButton allows)
+            cb.SetLocked(!isOwner); // owner normal; others dark/click-limited per your CharacterButton
         }
     }
 
@@ -319,7 +343,7 @@ public class CharacterSelectUIManager : MonoBehaviour
             if (cb) cb.SetLocked(false);
     }
 
-    // ===== Keep pool greying in sync with deck =====
+    // Keep pool greying in sync with deck
     private void RefreshPoolPickedStates()
     {
         for (int i = 0; i < _spawnedPoolButtons.Count; i++)
@@ -331,7 +355,7 @@ public class CharacterSelectUIManager : MonoBehaviour
         }
     }
 
-    // ===== Shake system (only used if enableLockShake = true) =====
+    // ======================= Shake system (optional) =======================
     private void ShakeNonGlobalDeckCards()
     {
         if (!enableLockShake) return;
@@ -393,4 +417,7 @@ public class CharacterSelectUIManager : MonoBehaviour
         rt.localRotation = Quaternion.identity;
         _shakeRoutines.Remove(deckBtn);
     }
+
+    // ======================= IDeckSelectionSource =======================
+    public IReadOnlyList<CardData> GetSelectedCards() => CurrentDeck;
 }

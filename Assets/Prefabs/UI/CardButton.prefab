@@ -123,7 +123,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2971207966265021780}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 915280354089844054}
+        m_TargetAssemblyTypeName: CardButton, Assembly-CSharp
+        m_MethodName: OnClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &915280354089844054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,9 +151,8 @@ MonoBehaviour:
   card: {fileID: 0}
   iconImage: {fileID: 2971207966265021780}
   nameText: {fileID: 8366266723449835790}
-  typeTag: {fileID: 0}
-  manager: {fileID: 0}
-  context: 0
+  cg: {fileID: 0}
+  ui: {fileID: 0}
   sourcePoolButton: {fileID: 0}
 --- !u!114 &330495624512190063
 MonoBehaviour:
