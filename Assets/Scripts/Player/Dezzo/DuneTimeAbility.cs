@@ -94,18 +94,22 @@ public class DuneTimeAbility : MonoBehaviour
         if (slowZonePrefab != null)
         {
             zoneInstance = Instantiate(slowZonePrefab, pos, Quaternion.identity);
-            // Ensure parameters match current ability settings
+            zoneInstance.owner = this.transform;            // keep this
+                                                            // zoneInstance.gameObject.tag = "DezzoSlowZone"; // <-- remove this
             zoneInstance.Init(radius, enemySlowFactor, duration, enemyLayers, showCircle);
         }
         else
         {
-            // Create a simple zone at runtime if no prefab given
             var go = new GameObject("DuneTime_SlowZone");
             go.transform.position = pos;
+            // go.tag = "DezzoSlowZone";                     // <-- remove this
             zoneInstance = go.AddComponent<SlowZone>();
+            zoneInstance.owner = this.transform;            // keep this
             zoneInstance.Init(radius, enemySlowFactor, duration, enemyLayers, showCircle);
         }
     }
+
+
 
     private void OnDrawGizmosSelected()
     {

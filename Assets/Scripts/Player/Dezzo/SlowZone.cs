@@ -1,152 +1,158 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Stationary slow area: applies EnemySlowModifier to any enemy inside its radius
-/// for the lifetime of the zone. Spawns optional visuals (fill + outline).
-/// Destroy this object to end the zone.
+/// Runtime slow zone for Dezzo's Dune Time.
+/// - Call Init(...) after creation.
+/// - Has owner, radius, duration, optional visual.
+/// - Raises spawn/despawn events so other systems (e.g., HealingDuneEffect) can track it.
 /// </summary>
+[RequireComponent(typeof(CircleCollider2D))]
 public class SlowZone : MonoBehaviour
 {
-    [Header("Zone")]
+    public static event Action<SlowZone> OnZoneSpawned;
+    public static event Action<SlowZone> OnZoneDestroyed;
+
+    [Header("Owner")]
+    public Transform owner;
+
+    [Header("Params (read-only at runtime)")]
     public float radius = 4.5f;
-    [Range(0.05f, 1f)] public float slowFactor = 0.4f; // 0.4 = 60% slow
+    [Range(0.1f, 1f)] public float enemySlowFactor = 0.4f;
     public float duration = 4f;
     public LayerMask enemyLayers;
+    public bool isActive = true;
 
     [Header("Visuals")]
     public bool showCircle = true;
-    [Tooltip("Semi-transparent fill sprite (white circle recommended). Optional.")]
-    public SpriteRenderer fillSprite;
-    [Tooltip("Optional outline, auto-created if null.")]
-    public LineRenderer outline;
-    [Range(16, 256)] public int outlineSegments = 96;
-    public float outlineWidth = 0.05f;
-    public Color fillColor = new Color(1f, 0.9f, 0.3f, 0.15f);
-    public Color outlineColor = new Color(1f, 0.8f, 0.25f, 0.35f);
-    public string sortingLayerName = "Default";
-    public int sortingOrder = 50;
+    public int circleSegments = 64;
+    public float circleLineWidth = 0.06f;
+    public Color circleColor = new Color(0.85f, 0.75f, 0.2f, 0.25f);
 
-    // internal
-    private float _endTime;
+    private CircleCollider2D _col;
+    private LineRenderer _lr;
+    private float _life;
 
-    private static Shader sSpritesDefault;
-    private static Shader SpritesDefault
+    // Cache slowed enemies to avoid re-applying every frame (optional)
+    private readonly HashSet<EnemyFollow> _slowed = new();
+
+    public void Init(float radius, float slowFactor, float duration, LayerMask enemyLayers, bool showCircle)
     {
-        get { return sSpritesDefault ??= Shader.Find("Sprites/Default"); }
-    }
+        this.radius = Mathf.Max(0.1f, radius);
+        this.enemySlowFactor = Mathf.Clamp(slowFactor, 0.1f, 1f);
+        this.duration = Mathf.Max(0.1f, duration);
+        this.enemyLayers = enemyLayers;
+        this.showCircle = showCircle;
 
-    public void Init(float radius, float slowFactor, float duration, LayerMask layers, bool show)
-    {
-        this.radius = radius;
-        this.slowFactor = Mathf.Clamp(slowFactor, 0.05f, 1f);
-        this.duration = Mathf.Max(0.05f, duration);
-        this.enemyLayers = layers;
-        this.showCircle = show;
+        if (!_col) _col = GetComponent<CircleCollider2D>();
+        _col.isTrigger = true;
+        // Scale-aware radius: keep collider radius in local units
+        _col.radius = this.radius;
+
+        BuildOrUpdateVisual();
+
+        _life = this.duration;
+        isActive = true;
+
+        OnZoneSpawned?.Invoke(this);
     }
 
     private void Awake()
     {
-        _endTime = Time.time + duration;
-        SetupVisuals();
+        _col = GetComponent<CircleCollider2D>();
+        _col.isTrigger = true;
     }
 
     private void Update()
     {
-        // Keep applying slow to anything currently in the zone
-        ApplySlowTick(0.2f); // refresh window so enemies staying inside remain slowed
+        if (!isActive) return;
 
-        if (Time.time >= _endTime)
-            Destroy(gameObject);
-    }
-
-    private void ApplySlowTick(float tickDuration)
-    {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius, enemyLayers);
-        for (int i = 0; i < hits.Length; i++)
+        _life -= Time.deltaTime;
+        if (_life <= 0f)
         {
-            var col = hits[i];
-            if (!col) continue;
-
-            var slow = col.GetComponent<EnemySlowModifier>();
-            if (!slow) slow = col.gameObject.AddComponent<EnemySlowModifier>();
-
-            // Re-apply with a small duration so it stays while inside the zone
-            // and falls off shortly after leaving.
-            slow.Apply(slowFactor, tickDuration);
+            isActive = false;
+            CleanupVisual();
+            Destroy(gameObject);
         }
     }
 
-    // ---------- Visuals ----------
+    private void OnDestroy()
+    {
+        OnZoneDestroyed?.Invoke(this);
+    }
 
-    private void SetupVisuals()
+    private void BuildOrUpdateVisual()
     {
         if (!showCircle)
         {
-            if (fillSprite) fillSprite.enabled = false;
-            if (outline) outline.enabled = false;
+            if (_lr) _lr.enabled = false;
             return;
         }
 
-        if (fillSprite)
+        if (!_lr)
         {
-            fillSprite.enabled = true;
-            fillSprite.color = fillColor;
-            // scale so diameter = 2 * radius
-            float d = radius * 2f;
-            fillSprite.transform.localScale = new Vector3(d, d, 1f);
-            fillSprite.transform.localPosition = Vector3.zero;
-            ApplySorting(fillSprite);
+            _lr = gameObject.AddComponent<LineRenderer>();
+            _lr.useWorldSpace = false;
+            _lr.alignment = LineAlignment.View;
+            _lr.loop = true;
+            _lr.numCapVertices = 0;
+            _lr.numCornerVertices = 0;
+            _lr.sortingOrder = 10; // render above ground
+            _lr.material = new Material(Shader.Find("Sprites/Default"));
         }
 
-        if (!outline)
-        {
-            var go = new GameObject("SlowZoneOutline");
-            go.transform.SetParent(transform, false);
-            outline = go.AddComponent<LineRenderer>();
-            outline.loop = true;
-            outline.useWorldSpace = false;
-            outline.widthMultiplier = 1f;
-            outline.textureMode = LineTextureMode.Stretch;
-#if UNITY_EDITOR
-            outline.sharedMaterial = new Material(SpritesDefault);
-#else
-            outline.material = new Material(SpritesDefault);
-#endif
-        }
+        _lr.enabled = true;
+        _lr.positionCount = Mathf.Max(16, circleSegments);
+        _lr.startWidth = circleLineWidth;
+        _lr.endWidth = circleLineWidth;
+        _lr.startColor = circleColor;
+        _lr.endColor = circleColor;
 
-        outline.enabled = true;
-        outline.startWidth = outlineWidth;
-        outline.endWidth = outlineWidth;
-        outline.startColor = outlineColor;
-        outline.endColor = outlineColor;
-        outline.positionCount = Mathf.Max(16, outlineSegments);
-        BuildCircle(outline, radius);
-        ApplySorting(outline);
-    }
-
-    private void BuildCircle(LineRenderer lr, float r)
-    {
-        int seg = Mathf.Max(16, outlineSegments);
-        lr.positionCount = seg;
-        float step = Mathf.PI * 2f / seg;
-        for (int i = 0; i < seg; i++)
+        float step = Mathf.PI * 2f / _lr.positionCount;
+        for (int i = 0; i < _lr.positionCount; i++)
         {
-            float a = i * step;
-            lr.SetPosition(i, new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0f));
+            float a = step * i;
+            _lr.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius, 0f));
         }
     }
 
-    private void ApplySorting(Renderer r)
+    private void CleanupVisual()
     {
-        if (!r) return;
-        r.sortingLayerName = sortingLayerName;
-        r.sortingOrder = sortingOrder;
+        if (_lr) _lr.enabled = false;
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnTriggerStay2D(Collider2D other)
     {
-        Gizmos.color = new Color(0.85f, 0.75f, 0.2f, 0.25f);
-        Gizmos.DrawWireSphere(transform.position, radius);
+        // Apply a simple slow to enemies inside the zone by scaling their moveSpeed temporarily.
+        if (((1 << other.gameObject.layer) & enemyLayers.value) == 0) return;
+
+        var ef = other.GetComponent<EnemyFollow>();
+        if (!ef) return;
+        if (_slowed.Contains(ef)) return;
+
+        _slowed.Add(ef);
+        StartCoroutine(TempSlowCoroutine(ef));
+    }
+
+    private System.Collections.IEnumerator TempSlowCoroutine(EnemyFollow ef)
+    {
+        if (!ef) yield break;
+
+        float original = ef.moveSpeed;
+        float target = original * enemySlowFactor;
+        ef.moveSpeed = target;
+
+        // While the enemy stays within the zone (approx), maintain slow
+        float refresh = 0.1f;
+        while (isActive && ef != null)
+        {
+            // if enemy left the radius significantly, break early
+            if (Vector2.Distance(ef.transform.position, transform.position) > radius * 1.1f) break;
+            yield return new WaitForSeconds(refresh);
+        }
+
+        if (ef != null) ef.moveSpeed = original;
+        _slowed.Remove(ef);
     }
 }

@@ -1,8 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System;                 // for Action
+using URandom = UnityEngine.Random;  // <-- alias Unity's Random
 
 public class EnemyHealth : MonoBehaviour
 {
+    // ===== Global death event =====
+    public static event Action<EnemyHealth> OnAnyEnemyDied;
+
     [Header("Health")]
     public float maxHP = 50f;
     private float currentHP;
@@ -198,6 +203,9 @@ public class EnemyHealth : MonoBehaviour
     {
         DropXP();
 
+        // Announce death to listeners (cards, etc.)
+        OnAnyEnemyDied?.Invoke(this);
+
         // Clean up UI (disable if pooling)
         if (hpUIRoot != null)
         {
@@ -213,7 +221,8 @@ public class EnemyHealth : MonoBehaviour
 
         for (int i = 0; i < coinsToDrop; i++)
         {
-            Vector2 offset = Random.insideUnitCircle * dropScatterRadius;
+            // NOTE: use the alias so we call Unity's Random, not System.Random
+            Vector2 offset = URandom.insideUnitCircle * dropScatterRadius;
             Vector3 spawnPos = transform.position + (Vector3)offset;
             Instantiate(xpCoinPrefab, spawnPos, Quaternion.identity);
         }

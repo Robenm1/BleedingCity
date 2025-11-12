@@ -1,21 +1,19 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-[CreateAssetMenu(fileName = "Card", menuName = "Game/Card", order = 0)]
+[CreateAssetMenu(fileName = "CardData", menuName = "Game/Cards/Card Data")]
 public class CardData : ScriptableObject
 {
-    [Header("Identity")]
-    public string cardId;
+    [Header("Meta")]
     public string displayName;
-    [TextArea(2, 6)] public string description;
-
-    [Header("Visuals")]
+    [TextArea(2, 4)] public string description;
     public Sprite icon;
 
-    [Header("Scope")]
-    [Tooltip("Checked = Global card (shown in bottom row). Unchecked = Character-specific (top row).")]
-    public bool isGlobal = false;
-
     [Header("Type")]
-    [Tooltip("Active = has a trigger/ability; Passive = always-on.")]
-    public bool isActive = false;   // false = Passive, true = Active
+    public bool isGlobal = false;   // usable by any character
+    public bool isActive = false;   // otherwise passive
+
+    [Header("Effects")]
+    [Tooltip("Effects to apply to the player when this card is in the deck.")]
+    public List<CardEffectSO> effects = new List<CardEffectSO>();
 }

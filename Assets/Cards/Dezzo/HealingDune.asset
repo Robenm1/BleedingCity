@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5af6ed99af2dd34db0c3ea9915ed4b8, type: 3}
   m_Name: HealingDune
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 2ndAbilityHeal
   displayName: Healing dune
   description: Your second ability now heals you when you enter the dune
   icon: {fileID: 5332196330280483565, guid: 80def44be2c945b43bda7dc03a0866ef, type: 3}
   isGlobal: 0
   isActive: 0
+  effects:
+  - {fileID: 11400000, guid: 435d8f9d5b7e6ec4a889ecc1cfc0f029, type: 2}

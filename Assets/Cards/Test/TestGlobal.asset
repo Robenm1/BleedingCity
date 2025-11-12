@@ -10,13 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a5af6ed99af2dd34db0c3ea9915ed4b8, type: 3}
-  m_Name: SharkStorm
+  m_Name: TestGlobal
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  displayName: Shark Storm
-  description: Spawn with a weaker shark but every 5 enemies you kill you gain an
-    extra shark
-  icon: {fileID: -8865886399594565849, guid: f88fc9ba3d0034f4a9d14267afefa929, type: 3}
-  isGlobal: 0
+  cardId: 
+  displayName: Global1
+  description: 
+  icon: {fileID: 3278905103743597814, guid: 935842a10cb31e849a438558e918ca5f, type: 3}
+  isGlobal: 1
   isActive: 0
-  effects:
-  - {fileID: 11400000, guid: 8b34fdcbcc01f6442b634d99a543b88d, type: 2}

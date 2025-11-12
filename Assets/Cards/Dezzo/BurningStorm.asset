@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5af6ed99af2dd34db0c3ea9915ed4b8, type: 3}
   m_Name: BurningStorm
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 1stAbilityDOT
   displayName: Burning storm
   description: Your marked enemies take damage over time based on the player attack
   icon: {fileID: -3906817502737204054, guid: 801d8e8eb20d0854ea4f1d32ddb15cb5, type: 3}
   isGlobal: 0
   isActive: 0
+  effects:
+  - {fileID: 11400000, guid: ee0a5c2531cdfe242b81dd859e6e4083, type: 2}

@@ -48,6 +48,8 @@ GameObject:
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
   - component: {fileID: 3862180431503610800}
+  - component: {fileID: -4824066855720338810}
+  - component: {fileID: 832137133396565875}
   - component: {fileID: 1310834842053227826}
   - component: {fileID: 245963259996808390}
   - component: {fileID: 4173014214521898107}
@@ -186,6 +188,31 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &-4824066855720338810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d985c267f350b0439f592a672a47f37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityCooldownMultiplierApplier
+  _entries: []
+--- !u!114 &832137133396565875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cdf912a6fb6eac43a55e0d666164cd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeckRuntimeApplier
 --- !u!114 &1310834842053227826
 MonoBehaviour:
   m_ObjectHideFlags: 0
