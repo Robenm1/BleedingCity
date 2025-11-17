@@ -1150,6 +1150,7 @@ GameObject:
   - component: {fileID: 5123005512653813654}
   - component: {fileID: 6932457058182116953}
   - component: {fileID: 8543821994713017365}
+  - component: {fileID: 3452977046005878275}
   m_Layer: 5
   m_Name: BuffsBorder
   m_TagString: Untagged
@@ -1216,6 +1217,21 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3452977046005878275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3060136548971905587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a690adc0820749947a0d8bf1d62742df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffSlotUI
+  root: {fileID: 3060136548971905587}
+  nameText: {fileID: 6205139013153617642}
+  descText: {fileID: 5139023000618143811}
 --- !u!1 &3270891125213613039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2119,13 +2135,14 @@ GameObject:
   - component: {fileID: 5358631206353642161}
   - component: {fileID: 6293488995122924682}
   - component: {fileID: 4012381883799398910}
+  - component: {fileID: 2772464258265138259}
   m_Layer: 5
   m_Name: StatsPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &5358631206353642161
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2189,6 +2206,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2772464258265138259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5056989146312390805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8545a5bc15a61894e815a10f7a1858d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StatsPanelCharacterIcon
+  characterIconImage: {fileID: 1100590512456284550}
+  carrierTypeName: CharacterSelectManager
+  characterMemberName: CharacterSelectUIManager
+  useButtonIcon: 1
+  verboseLogs: 1
 --- !u!1 &5295856481725927368
 GameObject:
   m_ObjectHideFlags: 0
@@ -2200,6 +2234,7 @@ GameObject:
   - component: {fileID: 7835690006300431162}
   - component: {fileID: 2239507005306804452}
   - component: {fileID: 55502970347743433}
+  - component: {fileID: 1746532145825471145}
   m_Layer: 5
   m_Name: BuffsBorder (2)
   m_TagString: Untagged
@@ -2266,6 +2301,21 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &1746532145825471145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5295856481725927368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a690adc0820749947a0d8bf1d62742df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffSlotUI
+  root: {fileID: 5295856481725927368}
+  nameText: {fileID: 12720055773471342}
+  descText: {fileID: 5139023000618143811}
 --- !u!1 &5311743282618561862
 GameObject:
   m_ObjectHideFlags: 0
@@ -4452,6 +4502,7 @@ GameObject:
   - component: {fileID: 1631667887390410444}
   - component: {fileID: 5432121794086601518}
   - component: {fileID: 715584148738147114}
+  - component: {fileID: 5548420152739060139}
   m_Layer: 5
   m_Name: BuffsBorder (1)
   m_TagString: Untagged
@@ -4518,6 +4569,21 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5548420152739060139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8645203045092589504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a690adc0820749947a0d8bf1d62742df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffSlotUI
+  root: {fileID: 8645203045092589504}
+  nameText: {fileID: 2028689612373476782}
+  descText: {fileID: 582729177003888545}
 --- !u!1 &8849151917687678133
 GameObject:
   m_ObjectHideFlags: 0
@@ -4626,7 +4692,7 @@ RectTransform:
   m_Father: {fileID: 5666265734799695175}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 2.7301025, y: 0.32542992}
   m_SizeDelta: {x: 0.7671, y: -0.6508}
   m_Pivot: {x: 0.5, y: 0.5}

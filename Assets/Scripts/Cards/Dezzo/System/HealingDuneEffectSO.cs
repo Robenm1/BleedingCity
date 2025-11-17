@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "HealingDuneEffect", menuName = "Game/Cards/Effects/Healing Dune")]
+[CreateAssetMenu(fileName = "HealingDuneEffect", menuName = "Game/Cards/Effects/Dezzo/Healing Dune")]
 public class HealingDuneEffectSO : CardEffectSO
 {
     public float healPerSecond = 6f;

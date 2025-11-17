@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "BurningStormEffect", menuName = "Game/Cards/Effects/Burning Storm")]
+[CreateAssetMenu(fileName = "BurningStormEffect", menuName = "Game/Cards/Effects/Dezzo/Burning Storm")]
 public class BurningStormEffectSO : CardEffectSO
 {
     [Header("Burning DoT")]

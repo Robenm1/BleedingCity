@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "SharkStormEffect", menuName = "Game/Cards/Effects/Shark Storm")]
+[CreateAssetMenu(fileName = "SharkStormEffect", menuName = "Game/Cards/Effects/Dezzo/Shark Storm")]
 public class SharkStormEffectSO : CardEffectSO
 {
     [Header("Starting Setup")]
