@@ -1,9 +1,13 @@
-﻿using UnityEngine;
+﻿// Assets/Scripts/Player/Dezzo/DezzoShark.cs
+using UnityEngine;
+using System.Reflection;
 
 [RequireComponent(typeof(Collider2D))]
 public class DezzoShark : MonoBehaviour
 {
     public enum State { Idle, Seek, BiteWindup, Retreat, Cooldown }
+
+    public static System.Action<EnemyHealth, Transform, float> OnSharkHit;
 
     [Header("Owner wiring")]
     public DezzoSharkManager owner;
@@ -127,7 +131,13 @@ public class DezzoShark : MonoBehaviour
         if (target == null) { state = State.Idle; return; }
 
         Vector2 toTarget = (Vector2)(target.position - transform.position);
-        float speed = owner.GetSharkMoveSpeed();
+        float speed = owner != null ? owner.GetSharkMoveSpeed() : 12f;
+
+        // Bite-mark frenzy move mul
+        var eh = target.GetComponent<EnemyHealth>();
+        var bm = eh ? eh.GetComponent<EnemyBiteMark>() : null;
+        if (bm != null && bm.isActive)
+            speed *= Mathf.Max(0.01f, bm.moveMul);
 
         Vector2 desired = toTarget.normalized * speed;
         desired += SeparationVector() + AvoidPlayerVector();
@@ -144,11 +154,32 @@ public class DezzoShark : MonoBehaviour
         if (target == null) { state = State.Idle; return; }
 
         var eh = target.GetComponent<EnemyHealth>();
+        float dealt = 0f;
+
         if (eh != null && owner != null)
         {
             float dmg = owner.GetSharkDamage() * damageMultiplier;
-            eh.TakeDamage(dmg);
+
+            // Execute & damage mul vs bite-marked
+            var bm = eh.GetComponent<EnemyBiteMark>();
+            if (bm != null && bm.isActive && TryGetEnemyHP(eh, out float cur, out float max))
+            {
+                if (bm.ShouldExecute(cur, max))
+                {
+                    eh.TakeDamage(999999f);
+                    OnSharkHit?.Invoke(eh, this.transform, 999999f);
+                    BeginRetreat();
+                    return;
+                }
+                dmg *= Mathf.Max(0.01f, bm.damageMul);
+            }
+
+            dealt = Mathf.Max(0f, dmg);
+            eh.TakeDamage(dealt);
         }
+
+        // notify listeners (increments hit counters)
+        if (eh != null) OnSharkHit?.Invoke(eh, this.transform, dealt);
 
         BeginRetreat();
     }
@@ -158,7 +189,18 @@ public class DezzoShark : MonoBehaviour
         retreatTimer = retreatDuration;
         state = State.Retreat;
 
-        attackCooldown = owner != null ? owner.GetAttackDelay() : 0.4f;
+        float cd = owner != null ? owner.GetAttackDelay() : 0.4f;
+
+        // Faster re-bite vs bite-marked target
+        if (target != null)
+        {
+            var eh = target.GetComponent<EnemyHealth>();
+            var bm = eh ? eh.GetComponent<EnemyBiteMark>() : null;
+            if (bm != null && bm.isActive)
+                cd *= Mathf.Max(0.01f, bm.attackDelayMul);
+        }
+
+        attackCooldown = cd;
 
         Vector2 away;
         if (target != null) away = ((Vector2)transform.position - (Vector2)target.position).normalized;
@@ -168,7 +210,7 @@ public class DezzoShark : MonoBehaviour
         Vector2 tangent = new Vector2(-away.y, away.x) * 0.7f;
         Vector2 retreatDir = (away + tangent).normalized;
 
-        velocity = retreatDir * owner.GetSharkMoveSpeed();
+        velocity = retreatDir * (owner != null ? owner.GetSharkMoveSpeed() : 12f);
     }
 
     private void TickRetreat()
@@ -253,7 +295,7 @@ public class DezzoShark : MonoBehaviour
             transform.position = clamped;
             velocity = Vector2.Lerp(
                 velocity,
-                (center - clamped).normalized * owner.GetSharkMoveSpeed() * 0.25f,
+                (center - clamped).normalized * (owner != null ? owner.GetSharkMoveSpeed() : 12f) * 0.25f,
                 0.5f
             );
         }
@@ -274,5 +316,31 @@ public class DezzoShark : MonoBehaviour
         delta = Mathf.Clamp(delta, -maxStep, +maxStep);
         currentAngle += delta;
         transform.rotation = Quaternion.Euler(0f, 0f, currentAngle);
+    }
+
+    private static bool TryGetEnemyHP(EnemyHealth eh, out float current, out float max)
+    {
+        current = 0f; max = 0f;
+        if (!eh) return false;
+
+        var getCur = eh.GetType().GetMethod("GetCurrentHP", BindingFlags.Public | BindingFlags.Instance);
+        var getMax = eh.GetType().GetMethod("GetMaxHP", BindingFlags.Public | BindingFlags.Instance);
+        if (getCur != null && getMax != null)
+        {
+            current = (float)getCur.Invoke(eh, null);
+            max = (float)getMax.Invoke(eh, null);
+            return true;
+        }
+
+        var fCur = eh.GetType().GetField("currentHP", BindingFlags.NonPublic | BindingFlags.Instance);
+        var fMax = eh.GetType().GetField("maxHP", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+        if (fCur != null && fMax != null)
+        {
+            current = (float)fCur.GetValue(eh);
+            max = (float)fMax.GetValue(eh);
+            return true;
+        }
+
+        return false;
     }
 }

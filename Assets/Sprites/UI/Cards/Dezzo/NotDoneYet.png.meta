@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 32e007ce5ab135648b16d6b1da61bc63
+guid: 9fabdb1f69299524da30764a3804b46c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2137603959997569827
-    second: UltimateHunger_0
+      213: 1317286173365280305
+    second: NotDoneYet_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,7 +126,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: UltimateHunger_0
+      name: NotDoneYet_0
       rect:
         serializedVersion: 2
         x: 249
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 32b9f12e97b4aad10800000000000000
-      internalID: 2137603959997569827
+      spriteID: 13e98fe9bc0f74210800000000000000
+      internalID: 1317286173365280305
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      UltimateHunger_0: 2137603959997569827
+      NotDoneYet_0: 1317286173365280305
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

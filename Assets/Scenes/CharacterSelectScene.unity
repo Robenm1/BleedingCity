@@ -3981,6 +3981,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: CardPreviewPanel
       objectReference: {fileID: 0}
+    - target: {fileID: 7723264280673510759, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -251
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
