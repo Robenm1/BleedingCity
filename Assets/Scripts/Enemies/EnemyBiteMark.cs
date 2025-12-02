@@ -20,6 +20,8 @@ public class EnemyBiteMark : MonoBehaviour
     public SpriteRenderer sigilRenderer;
     public Vector2 offset;
     public int sortingOrder = 300;
+    [Tooltip("Uniform scale applied to the sigil sprite.")]
+    public float sigilScale = 1f;
 
     private EnemyHealth _hp;
 
@@ -33,16 +35,23 @@ public class EnemyBiteMark : MonoBehaviour
     private void Update()
     {
         if (!isActive) return;
+
         remaining -= Time.deltaTime;
-        if (remaining <= 0f) Deactivate();
-        else if (sigilRenderer) sigilRenderer.transform.position = (Vector2)transform.position + offset;
+        if (remaining <= 0f) { Deactivate(); return; }
+
+        if (sigilRenderer)
+        {
+            sigilRenderer.transform.position = (Vector2)transform.position + offset;
+            sigilRenderer.transform.localScale = Vector3.one * Mathf.Max(0.05f, sigilScale);
+        }
     }
 
     public void Apply(
         float duration,
         float frenzyMoveMul, float frenzyAtkDelayMul, float frenzyDmgMul,
         float execThreshold,
-        Sprite sigilSprite, Color tint, Vector2 offset, int sortingOrder)
+        Sprite sigilSprite, Color tint, Vector2 offset, int sortingOrder,
+        float sigilScale)
     {
         this.remaining = Mathf.Max(0.1f, duration);
         this.moveMul = Mathf.Max(0.01f, frenzyMoveMul);
@@ -51,6 +60,7 @@ public class EnemyBiteMark : MonoBehaviour
         this.executeThreshold = Mathf.Clamp01(execThreshold);
         this.offset = offset;
         this.sortingOrder = sortingOrder;
+        this.sigilScale = Mathf.Max(0.05f, sigilScale);
 
         EnsureSigil();
         if (sigilRenderer)
@@ -59,6 +69,7 @@ public class EnemyBiteMark : MonoBehaviour
             sigilRenderer.color = tint;
             sigilRenderer.sortingOrder = sortingOrder;
             sigilRenderer.transform.position = (Vector2)transform.position + offset;
+            sigilRenderer.transform.localScale = Vector3.one * this.sigilScale;
             sigilRenderer.enabled = true;
         }
 
@@ -72,7 +83,6 @@ public class EnemyBiteMark : MonoBehaviour
         HideSigil();
     }
 
-    /// <summary>Return true if enemy should be instantly executed (HP under threshold).</summary>
     public bool ShouldExecute(float currentHP, float maxHP)
     {
         if (!isActive || maxHP <= 0f) return false;

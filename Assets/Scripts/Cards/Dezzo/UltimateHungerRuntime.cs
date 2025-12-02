@@ -23,12 +23,13 @@ public class UltimateHungerRuntime : MonoBehaviour
     public Color biteMarkTint = new Color(1f, 0.15f, 0.15f, 1f);
     public Vector2 biteMarkOffset = new Vector2(0f, 0.1f);
     public int sortingOrder = 300;
+    [Tooltip("Uniform scale for the bite-mark sprite.")]
+    public float biteMarkScale = 1f;
 
     private PlayerStats _stats;
     private Transform _self;
     private float _scanTimer;
 
-    // enemy → (count, lastHitTime)
     private readonly Dictionary<EnemyHealth, (int count, float last)> _counters = new();
 
     private void Awake()
@@ -80,7 +81,8 @@ public class UltimateHungerRuntime : MonoBehaviour
                 sigilSprite: biteMarkSprite,
                 tint: biteMarkTint,
                 offset: biteMarkOffset,
-                sortingOrder: sortingOrder
+                sortingOrder: sortingOrder,
+                sigilScale: Mathf.Max(0.05f, biteMarkScale)
             );
         }
     }

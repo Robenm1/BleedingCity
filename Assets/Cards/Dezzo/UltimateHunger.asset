@@ -18,4 +18,5 @@ MonoBehaviour:
   icon: {fileID: 2137603959997569827, guid: 32e007ce5ab135648b16d6b1da61bc63, type: 3}
   isGlobal: 0
   isActive: 0
-  effects: []
+  effects:
+  - {fileID: 11400000, guid: 933ccb2ff7f4ca345bb194fe0852972a, type: 2}

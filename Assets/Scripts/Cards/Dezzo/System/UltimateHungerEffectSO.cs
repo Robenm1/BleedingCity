@@ -13,18 +13,23 @@ public class UltimateHungerEffectSO : CardEffectSO
     public float biteMarkDuration = 6f;
 
     [Header("Frenzy vs Bite-Marked target")]
-    public float frenzyMoveSpeedMul = 1.25f; // sharks move faster toward marked
-    public float frenzyAttackDelayMul = 0.80f; // bite sooner
-    public float frenzyDamageMul = 1.15f; // hit harder
+    public float frenzyMoveSpeedMul = 1.25f;
+    public float frenzyAttackDelayMul = 0.80f;
+    public float frenzyDamageMul = 1.15f;
 
     [Header("Execute / Finisher")]
     [Range(0.01f, 0.5f)] public float executeThreshold = 0.10f;
 
     [Header("Visuals")]
-    public Sprite biteMarkSprite;              // red sigil placed ON enemy’s body
+    public Sprite biteMarkSprite;               // red sigil placed ON enemy
     public Color biteMarkTint = new Color(1f, 0.15f, 0.15f, 1f);
     public Vector2 biteMarkOffset = new Vector2(0f, 0.1f);
+    [Tooltip("Render order for the sigil SpriteRenderer.")]
     public int sortingOrder = 300;
+
+    [Header("Visual Size")]
+    [Tooltip("Uniform scale for the bite-mark sprite. 1 = original sprite size.")]
+    public float biteMarkScale = 1f;
 
     public override void Apply(GameObject player)
     {
@@ -45,5 +50,7 @@ public class UltimateHungerEffectSO : CardEffectSO
         runtime.biteMarkTint = biteMarkTint;
         runtime.biteMarkOffset = biteMarkOffset;
         runtime.sortingOrder = sortingOrder;
+
+        runtime.biteMarkScale = Mathf.Max(0.05f, biteMarkScale);
     }
 }
