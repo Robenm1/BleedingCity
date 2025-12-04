@@ -24,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody2D rb;
     private PlayerStats stats;
+    private OwlCloneAbility cloneAbility; // NEW: reference to clone ability
 
     // input/state
     private Vector2 moveInputRaw;
@@ -46,6 +47,7 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         stats = GetComponent<PlayerStats>();
+        cloneAbility = GetComponent<OwlCloneAbility>(); // NEW: find clone ability
 
         // Recommended Rigidbody2D settings for top-down:
         rb.gravityScale = 0f;
@@ -103,9 +105,17 @@ public class PlayerMovement : MonoBehaviour
     /// <summary>
     /// Called by PlayerControls when Dash input is performed.
     /// This checks cooldown/timers and starts a dash if possible.
+    /// NEW: If clone exists, swaps with clone instead of dashing.
     /// </summary>
     public void TryDash()
     {
+        // NEW: Check if clone ability wants to handle this (swap instead of dash)
+        if (cloneAbility != null && cloneAbility.TrySwapWithClone())
+        {
+            return; // Clone ability handled it (swap occurred)
+        }
+
+        // Normal dash logic
         if (isDashing) return;
         if (dashCooldownTimer > 0f && !allowInstantRedash) return;
 

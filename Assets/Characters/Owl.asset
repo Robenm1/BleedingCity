@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0200701a1e4ed98438762e5308b292db, type: 3}
-  m_Name: 2ndCharacter
+  m_Name: Owl
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
-  characterId: addawdw
-  displayName: wawa
-  description: wadddwasdar rwffafwaf
-  characterPrefab: {fileID: 486357500185902644, guid: 23fb9c0c486eac64691da433e48cd0ff, type: 3}
+  characterId: SnowOwl
+  displayName: Owl
+  description: 'An assassin that was living over killing demons and strong creatures '
+  characterPrefab: {fileID: 486357500185902644, guid: 1d38a348440a08f4a86edc0571d11ef1, type: 3}
   buttonIcon: {fileID: 21300000, guid: f4897a7cf14a2444eb4750dc3073cd23, type: 3}
   selectedIcon: {fileID: 21300000, guid: ed6012a203858ad48b145e6823c73310, type: 3}
   specialCards:
