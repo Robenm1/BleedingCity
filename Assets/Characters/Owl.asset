@@ -16,8 +16,8 @@ MonoBehaviour:
   displayName: Owl
   description: 'An assassin that was living over killing demons and strong creatures '
   characterPrefab: {fileID: 486357500185902644, guid: 1d38a348440a08f4a86edc0571d11ef1, type: 3}
-  buttonIcon: {fileID: 21300000, guid: f4897a7cf14a2444eb4750dc3073cd23, type: 3}
-  selectedIcon: {fileID: 21300000, guid: ed6012a203858ad48b145e6823c73310, type: 3}
+  buttonIcon: {fileID: -5414414667083140112, guid: 8dc1e358f9f764b47a81b9dd68b34c73, type: 3}
+  selectedIcon: {fileID: -8303507540158623852, guid: e6edbe03c345997459df24853cb8355a, type: 3}
   specialCards:
   - {fileID: 11400000, guid: 1a197958ec50dad4d99cdf9b9fb4a1f2, type: 2}
   - {fileID: 11400000, guid: b4cb57de47c1d2e48bd1da1f1f66e2a7, type: 2}
