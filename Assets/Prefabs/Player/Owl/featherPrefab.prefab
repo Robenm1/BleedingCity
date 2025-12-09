@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 5628863831685969705}
   - component: {fileID: 1597788900391895608}
   - component: {fileID: -9053436456010844776}
+  - component: {fileID: 8198183018205684473}
+  - component: {fileID: 3763291400312421897}
   m_Layer: 0
   m_Name: featherPrefab
   m_TagString: Untagged
@@ -145,7 +147,6 @@ MonoBehaviour:
   stickDistance: 0.05
   maxLifetime: 6
   maxTravelDistance: 15
-  damage: 10
   recallDamageMultiplier: 1.5
   enemyLayers:
     serializedVersion: 2
@@ -153,3 +154,33 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 128
+--- !u!114 &8198183018205684473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8254543058356260665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5b632b40a03c5848b8c56cbeb4815bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FeatherChainOnHit
+  extraBounces: 3
+  bounceRadius: 3
+  damageMultiplier: 1
+  minChainSpeed: 12
+--- !u!114 &3763291400312421897
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8254543058356260665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43f31084370633f42889ab3bcd6331a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FeatherOwnerLink
+  owner: {fileID: 0}
+  ownerStats: {fileID: 0}

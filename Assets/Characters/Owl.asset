@@ -19,6 +19,4 @@ MonoBehaviour:
   buttonIcon: {fileID: -5414414667083140112, guid: 8dc1e358f9f764b47a81b9dd68b34c73, type: 3}
   selectedIcon: {fileID: -8303507540158623852, guid: e6edbe03c345997459df24853cb8355a, type: 3}
   specialCards:
-  - {fileID: 11400000, guid: 1a197958ec50dad4d99cdf9b9fb4a1f2, type: 2}
-  - {fileID: 11400000, guid: b4cb57de47c1d2e48bd1da1f1f66e2a7, type: 2}
-  - {fileID: 11400000, guid: 50befed4ccd97014cab641b6b9b0140a, type: 2}
+  - {fileID: 11400000, guid: c9dd312e212350f4fa8318f367be0727, type: 2}
