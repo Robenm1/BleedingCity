@@ -20,3 +20,4 @@ MonoBehaviour:
   selectedIcon: {fileID: -8303507540158623852, guid: e6edbe03c345997459df24853cb8355a, type: 3}
   specialCards:
   - {fileID: 11400000, guid: c9dd312e212350f4fa8318f367be0727, type: 2}
+  - {fileID: 11400000, guid: 75c1225cbdfab084ea89d284fa0bff81, type: 2}

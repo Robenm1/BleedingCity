@@ -114,7 +114,8 @@ public class OwlCloneAbility : MonoBehaviour
         _ghost = Instantiate(clonePrefab, transform.position, Quaternion.identity);
         SetRenderersAlpha(_ghost, ghostAlpha);
         FreezeClone(_ghost);
-        DisableShooter(_ghost); // NEW: Disable shooter on ghost
+        DisableShooter(_ghost);
+        DisableColliders(_ghost); // NEW: Disable all colliders on ghost
         UpdateGhost();
     }
 
@@ -171,6 +172,7 @@ public class OwlCloneAbility : MonoBehaviour
 
         SetRenderersAlpha(_activeClone, 1f);
         FreezeClone(_activeClone);
+        EnableColliders(_activeClone); // NEW: Re-enable colliders on real clone
 
         var cloneShooter = _activeClone.GetComponent<OwlFeatherShooter>();
         if (!cloneShooter) cloneShooter = _activeClone.AddComponent<OwlFeatherShooter>();
@@ -181,7 +183,7 @@ public class OwlCloneAbility : MonoBehaviour
         }
         cloneShooter.SetSharedOwnerId(_sharedOwnerId);
         cloneShooter.SetRangeSource(_stats);
-        cloneShooter.enabled = true; // NEW: Explicitly enable shooter on real clone
+        cloneShooter.enabled = true;
 
         var life = _activeClone.GetComponent<SimpleLifetime>();
         if (!life) life = _activeClone.AddComponent<SimpleLifetime>();
@@ -216,6 +218,9 @@ public class OwlCloneAbility : MonoBehaviour
     /// </summary>
     public bool HasActiveClone() => _activeClone != null;
 
+    public GameObject GetActiveClone() => _activeClone;
+
+
     private void FreezeClone(GameObject obj)
     {
         if (!obj) return;
@@ -245,6 +250,24 @@ public class OwlCloneAbility : MonoBehaviour
         if (!obj) return;
         var shooter = obj.GetComponent<OwlFeatherShooter>();
         if (shooter) shooter.enabled = false;
+    }
+
+    private void DisableColliders(GameObject obj)
+    {
+        if (!obj) return;
+        foreach (var col in obj.GetComponentsInChildren<Collider2D>(true))
+        {
+            col.enabled = false;
+        }
+    }
+
+    private void EnableColliders(GameObject obj)
+    {
+        if (!obj) return;
+        foreach (var col in obj.GetComponentsInChildren<Collider2D>(true))
+        {
+            col.enabled = true;
+        }
     }
 
     private void SetRenderersAlpha(GameObject obj, float a)
