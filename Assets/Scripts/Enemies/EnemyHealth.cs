@@ -57,6 +57,11 @@ public class EnemyHealth : MonoBehaviour
     private Vector2 _uiVel;
     private Vector2 _lastAnchoredPos;
 
+    // ===== Added: temporary vulnerability support =====
+    // Multiplies incoming damage; returns to 1f when timer ends.
+    private float _vulnMul = 1f;
+    private float _vulnTimer = 0f;
+
     private void Awake()
     {
         currentHP = maxHP;
@@ -79,6 +84,17 @@ public class EnemyHealth : MonoBehaviour
 
     private void Update()
     {
+        // ===== Added: tick vulnerability timer =====
+        if (_vulnTimer > 0f)
+        {
+            _vulnTimer -= Time.deltaTime;
+            if (_vulnTimer <= 0f)
+            {
+                _vulnTimer = 0f;
+                _vulnMul = 1f; // back to normal damage
+            }
+        }
+
         // Handle timed hiding (only when full)
         if (hpUIRoot != null && hpUIRoot.gameObject.activeSelf)
         {
@@ -145,6 +161,9 @@ public class EnemyHealth : MonoBehaviour
     public void TakeDamage(float dmg)
     {
         if (dmg <= 0f || currentHP <= 0f) return;
+
+        // ===== Added: apply temporary vulnerability multiplier =====
+        dmg *= _vulnMul;
 
         currentHP -= dmg;
         if (currentHP < 0f) currentHP = 0f;
@@ -237,5 +256,17 @@ public class EnemyHealth : MonoBehaviour
 
         // Show briefly, then auto-hide if full
         ShowHPUI();
+    }
+
+    // ===== Added: API to apply temporary extra damage taken =====
+    /// <summary>
+    /// Makes this enemy take more damage for a duration.
+    /// multiplier = 1.25 means +25% damage taken.
+    /// Duration stacks by time (extends), but multiplier is simply replaced.
+    /// </summary>
+    public void ApplyVulnerability(float multiplier, float duration)
+    {
+        _vulnMul = Mathf.Max(0.01f, multiplier);
+        _vulnTimer = Mathf.Max(_vulnTimer, duration);
     }
 }

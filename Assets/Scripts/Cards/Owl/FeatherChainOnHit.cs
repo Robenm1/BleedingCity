@@ -47,7 +47,6 @@ public class FeatherChainOnHit : MonoBehaviour
         if (_col) _col.isTrigger = true;
         _bouncesUsed = 0;
 
-        // Default to "Enemy" layer if empty
         if (enemyLayers.value == 0)
             enemyLayers = LayerMask.GetMask("Enemy");
     }
@@ -72,14 +71,12 @@ public class FeatherChainOnHit : MonoBehaviour
     {
         if (_stuck) return;
 
-        // Home toward current target (if any)
         if (_currentTarget != null)
         {
             Vector2 pos = transform.position;
             Vector2 tgt = _currentTarget.position;
             Vector2 to = tgt - pos;
 
-            // Keep moving toward target until we arrive
             if (to.sqrMagnitude > arriveDistance * arriveDistance)
             {
                 Vector2 v = to.normalized * chainSpeed;
@@ -92,7 +89,6 @@ public class FeatherChainOnHit : MonoBehaviour
     {
         if (_stuck) return;
 
-        // Ignore non-enemy layers
         if (((1 << other.gameObject.layer) & enemyLayers.value) == 0)
             return;
 
@@ -100,12 +96,10 @@ public class FeatherChainOnHit : MonoBehaviour
         if (!eh) return;
         if (_alreadyHit.Contains(eh)) return;
 
-        // Deal damage using player stats
         float baseDmg = (_ownerLink && _ownerLink.ownerStats) ? _ownerLink.ownerStats.GetDamage() : 10f;
         eh.TakeDamage(baseDmg * Mathf.Max(0f, damageMultiplier));
         _alreadyHit.Add(eh);
 
-        // Check if we can bounce to another enemy
         if (_bouncesUsed < maxBounces)
         {
             var next = FindNextTarget();
@@ -113,20 +107,17 @@ public class FeatherChainOnHit : MonoBehaviour
             {
                 _bouncesUsed++;
                 _currentTarget = next;
-                // Set initial velocity toward next target
                 Vector2 dir = ((Vector2)next.position - (Vector2)transform.position).normalized;
                 _rb.linearVelocity = dir * chainSpeed;
                 return;
             }
         }
 
-        // No more bounces or no targets found: stick to ground
         StickHere();
     }
 
     private Transform FindNextTarget()
     {
-        // Find ALL enemies in the scene (no distance limit)
         EnemyHealth[] allEnemies = FindObjectsOfType<EnemyHealth>();
         float bestDistSqr = float.PositiveInfinity;
         Transform best = null;
@@ -135,7 +126,6 @@ public class FeatherChainOnHit : MonoBehaviour
         {
             if (!eh || _alreadyHit.Contains(eh)) continue;
 
-            // Check if this enemy is on the correct layer
             if (((1 << eh.gameObject.layer) & enemyLayers.value) == 0)
                 continue;
 
@@ -162,7 +152,6 @@ public class FeatherChainOnHit : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        // Visual indicator showing unlimited range
         Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, 2f);
 

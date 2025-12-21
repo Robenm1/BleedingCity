@@ -4,9 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Runtime enabler for the "Frost Feather" card:
-/// - Adds/updates a FeatherChainOnHit on the feather prefab used by any OwlFeatherShooter
-///   on this player (and children like the clone).
-/// - Keeps re-syncing in case a clone spawns later.
+/// - Intercepts feather spawns from OwlFeatherShooter and adds FeatherChainOnHit to instances
+/// - Does NOT modify the prefab to avoid permanent changes
 /// </summary>
 [DisallowMultipleComponent]
 public class FrostFeatherEffect : MonoBehaviour
@@ -18,66 +17,90 @@ public class FrostFeatherEffect : MonoBehaviour
     [Tooltip("Damage multiplier applied to each chain hit relative to PlayerStats.GetDamage(). 1 = base damage.")]
     public float chainDamageMultiplier = 1.0f;
 
-    [Header("Maintenance")]
-    [Tooltip("How often we rescan for OwlFeatherShooter components to decorate their feather prefab.")]
-    public float resyncInterval = 0.5f;
-
-    private Coroutine _runner;
+    private bool _isActive = false;
+    private readonly List<OwlFeatherShooter> _trackedShooters = new List<OwlFeatherShooter>();
 
     /// <summary>Call from SO.Apply().</summary>
     public void EnableEffect()
     {
-        if (_runner != null) StopCoroutine(_runner);
-        _runner = StartCoroutine(ResyncRoutine());
+        _isActive = true;
+        StartCoroutine(TrackShootersRoutine());
     }
 
     /// <summary>Optional if you later add SO.Remove().</summary>
     public void DisableEffect()
     {
-        if (_runner != null)
-        {
-            StopCoroutine(_runner);
-            _runner = null;
-        }
-        // We don't rip components off the prefab at runtime to avoid breaking active instances.
+        _isActive = false;
+        UnsubscribeFromAllShooters();
     }
 
-    private IEnumerator ResyncRoutine()
+    private void OnDestroy()
+    {
+        UnsubscribeFromAllShooters();
+    }
+
+    private IEnumerator TrackShootersRoutine()
     {
         var shooters = new List<OwlFeatherShooter>();
-        while (true)
+        while (_isActive)
         {
             shooters.Clear();
             GetComponentsInChildren(true, shooters); // player + clone(s)
-            for (int i = 0; i < shooters.Count; i++)
+
+            // Subscribe to any new shooters
+            foreach (var shooter in shooters)
             {
-                TryDecorateShooterFeather(shooters[i]);
+                if (shooter != null && !_trackedShooters.Contains(shooter))
+                {
+                    SubscribeToShooter(shooter);
+                }
             }
-            yield return new WaitForSeconds(resyncInterval);
+
+            // Clean up null references
+            _trackedShooters.RemoveAll(s => s == null);
+
+            yield return new WaitForSeconds(0.5f);
         }
     }
 
-    private void TryDecorateShooterFeather(OwlFeatherShooter shooter)
+    private void SubscribeToShooter(OwlFeatherShooter shooter)
     {
-        if (shooter == null) return;
+        _trackedShooters.Add(shooter);
+        // Hook into the shooter's spawn event if it has one
+        // If your OwlFeatherShooter doesn't have events, we'll need another approach
+        // For now, we'll use a different method - see below
+    }
 
-        // NOTE: In your project, featherPrefab is a SnowOwlFeather (component), not a GameObject.
-        var featherComp = shooter.featherPrefab; // SnowOwlFeather
-        if (!featherComp) return;
+    private void UnsubscribeFromAllShooters()
+    {
+        _trackedShooters.Clear();
+    }
 
-        GameObject prefabGO = featherComp.gameObject;
+    private void Update()
+    {
+        if (!_isActive) return;
 
-        // Ensure the chain component exists on the prefab itself.
-        var chain = prefabGO.GetComponent<FeatherChainOnHit>();
-        if (!chain) chain = prefabGO.AddComponent<FeatherChainOnHit>();
+        // Find all feathers in the scene that don't have the chain component yet
+        var allFeathers = FindObjectsOfType<SnowOwlFeather>();
+        foreach (var feather in allFeathers)
+        {
+            if (feather == null) continue;
 
-        // Configure chain behavior with new property names
-        chain.maxBounces = Mathf.Max(0, maxBounces);
-        chain.damageMultiplier = Mathf.Max(0f, chainDamageMultiplier);
+            // Only add to instances, not prefabs
+            if (feather.gameObject.scene.name == null) continue;
 
-        // Ensure owner link exists so spawned feathers inherit the shooter/owner correctly.
-        var ownerLink = prefabGO.GetComponent<FeatherOwnerLink>();
-        if (!ownerLink) ownerLink = prefabGO.AddComponent<FeatherOwnerLink>();
-        // No need to set anything here; your shooter should stamp owner on spawn.
+            var chain = feather.GetComponent<FeatherChainOnHit>();
+            if (chain == null)
+            {
+                // This is a newly spawned feather - add the chain component
+                chain = feather.gameObject.AddComponent<FeatherChainOnHit>();
+                chain.maxBounces = Mathf.Max(0, maxBounces);
+                chain.damageMultiplier = Mathf.Max(0f, chainDamageMultiplier);
+
+                // Ensure owner link exists
+                var ownerLink = feather.GetComponent<FeatherOwnerLink>();
+                if (!ownerLink) ownerLink = feather.gameObject.AddComponent<FeatherOwnerLink>();
+            }
+        }
     }
 }
