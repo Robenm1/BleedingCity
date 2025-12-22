@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9591e7b0b84a7804d8fee6ed452ca970, type: 3}
+  m_Name: SacrificialDummyEffect
+  m_EditorClassIdentifier: Assembly-CSharp::SacrificialDummyEffectSO
+  baseTurretChance: 0.2
+  frostedTurretChance: 1
+  shardFrostChance: 0.2
+  turretTint: {r: 0.7, g: 0.9, b: 1, a: 1}
+  shardsToFire: 6
+  fireInterval: 0.12
+  spreadAngle: 20
+  seekRange: 100
+  frostShardPrefab: {fileID: 8254543058356260665, guid: 23112d2c0475bbe47be3e24b0b66f7c0, type: 3}
+  shardSpeed: 10
+  shardLifetime: 2.5
+  shardDamage: 12
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  frostSlow: 0.5
+  frostDuration: 3
+  frostIcon: {fileID: 8842744376882955741, guid: 460280c05290c914ab27d3a100e7b900, type: 3}
+  frostIconPivot: {x: 0, y: 0.85}
+  frostIconSize: {x: 3, y: 3}

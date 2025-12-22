@@ -17,12 +17,12 @@ MonoBehaviour:
   enemyLayers:
     serializedVersion: 2
     m_Bits: 8
-  applyFrost: 1
   slowFactor: 0.6
   slowDuration: 4
   frostMarkSprite: {fileID: 8842744376882955741, guid: 460280c05290c914ab27d3a100e7b900, type: 3}
   frostMarkOffset: {x: 0, y: 1}
-  frostMarkSize: {x: 0.5, y: 0.5}
+  frostMarkSize: {x: 3, y: 3}
+  frostedDamageMultiplier: 1.15
   spawnCircle: 1
   circleColor: {r: 0.6, g: 0.8, b: 1, a: 0.55}
   circleDuration: 0.5

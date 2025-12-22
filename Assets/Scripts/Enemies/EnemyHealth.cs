@@ -56,6 +56,7 @@ public class EnemyHealth : MonoBehaviour
     // Smoothing state
     private Vector2 _uiVel;
     private Vector2 _lastAnchoredPos;
+    private bool _convertingToTurret = false;
 
     // ===== Added: temporary vulnerability support =====
     // Multiplies incoming damage; returns to 1f when timer ends.
@@ -162,8 +163,15 @@ public class EnemyHealth : MonoBehaviour
     {
         if (dmg <= 0f || currentHP <= 0f) return;
 
-        // ===== Added: apply temporary vulnerability multiplier =====
+        // Apply temporary vulnerability multiplier (existing system)
         dmg *= _vulnMul;
+
+        // NEW: Check if enemy is frosted and apply additional vulnerability
+        var frosted = GetComponent<FrostedOnEnemy>();
+        if (frosted != null && frosted.IsActive)
+        {
+            dmg *= frosted.vulnerabilityMultiplier;
+        }
 
         currentHP -= dmg;
         if (currentHP < 0f) currentHP = 0f;
@@ -220,6 +228,9 @@ public class EnemyHealth : MonoBehaviour
 
     private void Die()
     {
+        // CRITICAL: If being converted to turret, don't destroy yet
+        if (_convertingToTurret) return;
+
         DropXP();
 
         // Announce death to listeners (cards, etc.)
@@ -232,6 +243,12 @@ public class EnemyHealth : MonoBehaviour
         }
 
         Destroy(gameObject);
+    }
+
+    // Add this new public method at the end:
+    public void MarkAsConvertingToTurret()
+    {
+        _convertingToTurret = true;
     }
 
     private void DropXP()

@@ -1,10 +1,5 @@
 using UnityEngine;
-using System.Collections.Generic;
 
-/// <summary>
-/// Attach to the Owl player (via SO.Apply). It detects newly spawned clones,
-/// hooks a destroy callback, then explodes on expiration. Also spawns a circle ring using ExplosionRingFX.
-/// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerStats))]
 public class WinterBombEffect : MonoBehaviour
@@ -15,12 +10,12 @@ public class WinterBombEffect : MonoBehaviour
     public LayerMask enemyLayers;
 
     [Header("Frosted Debuff (set by SO)")]
-    public bool applyFrost = true;
     [Range(0.1f, 1f)] public float slowFactor = 0.6f;
     public float slowDuration = 3f;
     public Sprite frostMarkSprite;
     public Vector2 frostMarkOffset = new Vector2(0f, 1f);
     public Vector2 frostMarkSize = new Vector2(0.5f, 0.5f);
+    public float frostedDamageMultiplier = 1.15f;
 
     [Header("Circle Pulse VFX (set by SO)")]
     public bool spawnCircle = true;
@@ -40,16 +35,15 @@ public class WinterBombEffect : MonoBehaviour
         _cloneAbility = GetComponent<OwlCloneAbility>();
         if (_cloneAbility == null)
         {
-            Debug.LogWarning("[WinterBombEffect] OwlCloneAbility not found on player. Effect will be idle.");
+            Debug.LogWarning("[WinterBombEffect] OwlCloneAbility not found on player.");
         }
     }
 
     private void Update()
     {
-        // Poll for a newly spawned clone and wire it.
         if (_cloneAbility == null) return;
 
-        var currentClone = GetActiveClone();
+        var currentClone = FindNearestCloneLike();
         if (currentClone != null && currentClone != _lastHookedClone)
         {
             HookClone(currentClone);
@@ -61,19 +55,6 @@ public class WinterBombEffect : MonoBehaviour
         }
     }
 
-    private GameObject GetActiveClone()
-    {
-        // OwlCloneAbility exposes swap and spawn, but we didn’t modify it.
-        // We’ll find the clone by looking for a SimpleLifetime tagged sibling spawned by the ability near the player.
-        // Better approach: expose a method on OwlCloneAbility to return the active clone.
-        // If you already have one, replace this with that call.
-        // Fallback here: try to find a clone with an OnDestroyCallback created recently and same owner project (optional).
-        // To keep it simple: we search for the nearest object with SimpleLifetime that has OwlFeatherShooter and is not the player.
-
-        // NOTE: if you already have a public accessor in OwlCloneAbility, use that instead.
-        return FindNearestCloneLike();
-    }
-
     private GameObject FindNearestCloneLike()
     {
         OwlFeatherShooter[] shooters = GameObject.FindObjectsOfType<OwlFeatherShooter>();
@@ -83,9 +64,7 @@ public class WinterBombEffect : MonoBehaviour
         foreach (var s in shooters)
         {
             if (!s) continue;
-            if (s.gameObject == this.gameObject) continue; // skip player
-
-            // Heuristic: treat non-player shooters with SimpleLifetime as clones
+            if (s.gameObject == this.gameObject) continue;
             if (!s.GetComponent<SimpleLifetime>()) continue;
 
             float d = (s.transform.position - transform.position).sqrMagnitude;
@@ -106,7 +85,6 @@ public class WinterBombEffect : MonoBehaviour
         if (!cb) cb = clone.AddComponent<OnDestroyCallback>();
         cb.Init(() =>
         {
-            // Clone is destroying -> explode at last position
             Vector3 pos = clone.transform.position;
             DoExplosion(pos);
         });
@@ -114,10 +92,9 @@ public class WinterBombEffect : MonoBehaviour
 
     private void DoExplosion(Vector3 center)
     {
-        // 1) VFX ring (if assigned)
+        // VFX ring
         if (spawnCircle)
         {
-            // Requires ExplosionRingFX.cs in your project (the utility you just added).
             ExplosionRingFX.Spawn(
                 worldPos: center,
                 radius: explosionRadius,
@@ -129,8 +106,8 @@ public class WinterBombEffect : MonoBehaviour
             );
         }
 
-        // 2) Gameplay: damage + optional frost
-        float dmg = (_stats != null ? _stats.GetDamage() : 10f) * Mathf.Max(0f, damageMultiplier);
+        // Damage + apply Frosted status
+        float baseDmg = (_stats != null ? _stats.GetDamage() : 10f) * Mathf.Max(0f, damageMultiplier);
 
         var hits = Physics2D.OverlapCircleAll(center, explosionRadius, enemyLayers);
         for (int i = 0; i < hits.Length; i++)
@@ -139,21 +116,22 @@ public class WinterBombEffect : MonoBehaviour
             if (!col) continue;
 
             var eh = col.GetComponent<EnemyHealth>();
-            if (eh) eh.TakeDamage(dmg);
+            if (eh) eh.TakeDamage(baseDmg);
 
-            if (applyFrost)
-            {
-                var frost = col.GetComponent<FrostedOnEnemy>();
-                if (!frost) frost = col.gameObject.AddComponent<FrostedOnEnemy>();
+            // Apply Frosted status
+            var frost = col.GetComponent<FrostedOnEnemy>();
+            if (!frost) frost = col.gameObject.AddComponent<FrostedOnEnemy>();
 
-                frost.Apply(
-                    slowFactor: Mathf.Clamp(slowFactor, 0.1f, 1f),
-                    duration: Mathf.Max(0.01f, slowDuration),
-                    markSprite: frostMarkSprite,
-                    offset: frostMarkOffset,
-                    size: frostMarkSize
-                );
-            }
+            frost.Apply(
+                slow: Mathf.Clamp(slowFactor, 0.1f, 1f),
+                dur: Mathf.Max(0.01f, slowDuration),
+                icon: frostMarkSprite,
+                pivot: frostMarkOffset,
+                size: frostMarkSize
+            );
+
+            // Set vulnerability multiplier so frosted enemies take bonus damage
+            frost.vulnerabilityMultiplier = frostedDamageMultiplier;
         }
     }
 
