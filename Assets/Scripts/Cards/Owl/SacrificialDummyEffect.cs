@@ -4,127 +4,125 @@ using System.Collections;
 [DisallowMultipleComponent]
 public class SacrificialDummyEffect : MonoBehaviour
 {
-    [HideInInspector] public float baseTurretChance = 0.2f;
-    [HideInInspector] public float frostedTurretChance = 1.0f;
-    [HideInInspector] public float shardFrostChance = 0.2f;
-    [HideInInspector] public Color turretTint = new Color(0.7f, 0.9f, 1f, 1f);
-    [HideInInspector] public int shardsToFire = 6;
-    [HideInInspector] public float fireInterval = 0.12f;
-    [HideInInspector] public float spreadAngle = 20f;
-    [HideInInspector] public float seekRange = 8f;
-    [HideInInspector] public GameObject frostShardPrefab;
-    [HideInInspector] public float shardSpeed = 18f;
-    [HideInInspector] public float shardLifetime = 2.5f;
-    [HideInInspector] public float shardDamage = 12f;
-    [HideInInspector] public LayerMask enemyLayers;
-    [HideInInspector] public float frostSlow = 0.6f;
-    [HideInInspector] public float frostDuration = 2.5f;
-    [HideInInspector] public Sprite frostIcon;
-    [HideInInspector] public Vector2 frostIconPivot = new Vector2(0f, 0.85f);
-    [HideInInspector] public Vector2 frostIconSize = new Vector2(0.35f, 0.35f);
+    [Header("Turret Spawn Chances (set by SO)")]
+    public float baseTurretChance = 0.2f;
+    public float frostedTurretChance = 1.0f;
+    public float shardFrostChance = 0.2f;
+
+    [Header("Turret Settings (set by SO)")]
+    public Color turretTint = new Color(0.7f, 0.9f, 1f, 1f);
+    public int shardsToFire = 6;
+    public float fireInterval = 0.12f;
+    public float spreadAngle = 20f;
+    public float seekRange = 8f;
+
+    [Header("Projectile (set by SO)")]
+    public GameObject frostShardPrefab;
+    public float shardSpeed = 18f;
+    public float shardLifetime = 2.5f;
+    public float shardDamage = 12f;
+    public LayerMask enemyLayers;
+
+    [Header("Frost Effect (set by SO)")]
+    public float frostSlow = 0.6f;
+    public float frostDuration = 2.5f;
+    public Sprite frostIcon;
+    public Vector2 frostIconPivot = new Vector2(0f, 0.85f);
+    public Vector2 frostIconSize = new Vector2(0.35f, 0.35f);
+
+    [Header("Debug")]
+    public bool enableDebugLogs = true;
 
     private bool _enabled;
 
-    public void Enable()
+    private void OnEnable()
     {
-        if (_enabled) return;
+        if (!_enabled)
+        {
+            EnemyHealth.OnAnyEnemyDied += OnEnemyDied;
+            _enabled = true;
+            if (enableDebugLogs) Debug.Log("[SacrificialDummyEffect] Subscribed to enemy death events.");
+        }
+    }
 
-        Debug.Log("[SacrificialDummy] Enabling effect - subscribing to enemy deaths");
-
-        EnemyHealth.OnAnyEnemyDied += OnEnemyDied;
-        _enabled = true;
+    private void OnDisable()
+    {
+        if (_enabled)
+        {
+            EnemyHealth.OnAnyEnemyDied -= OnEnemyDied;
+            _enabled = false;
+            if (enableDebugLogs) Debug.Log("[SacrificialDummyEffect] Unsubscribed from enemy death events.");
+        }
     }
 
     private void OnDestroy()
     {
         if (_enabled)
         {
-            Debug.Log("[SacrificialDummy] Destroying - unsubscribing from enemy deaths");
             EnemyHealth.OnAnyEnemyDied -= OnEnemyDied;
+            _enabled = false;
         }
-        _enabled = false;
     }
 
     private void OnEnemyDied(EnemyHealth dead)
     {
-        Debug.Log($"[SacrificialDummy] Enemy died! Checking conversion... Prefab null? {frostShardPrefab == null}");
+        if (enableDebugLogs) Debug.Log($"[SacrificialDummyEffect] Enemy died: {dead.name}");
 
-        if (!dead || !frostShardPrefab)
+        if (!dead)
         {
-            Debug.Log("[SacrificialDummy] Skipping - dead enemy or no prefab");
+            if (enableDebugLogs) Debug.LogWarning("[SacrificialDummyEffect] Dead enemy is null!");
             return;
         }
 
-        // Check if enemy was frosted
+        if (!frostShardPrefab)
+        {
+            if (enableDebugLogs) Debug.LogWarning("[SacrificialDummyEffect] Frost shard prefab is not assigned!");
+            return;
+        }
+
         var frosted = dead.GetComponent<FrostedOnEnemy>();
-        bool isFrosted = (frosted && frosted.IsActive);
+        bool wasFrosted = (frosted != null && frosted.IsActive);
 
-        Debug.Log($"[SacrificialDummy] Enemy frosted? {isFrosted}");
-
-        // Determine chance based on frosted status
-        float chance = isFrosted ? frostedTurretChance : baseTurretChance;
+        float chance = wasFrosted ? frostedTurretChance : baseTurretChance;
         float roll = Random.value;
 
-        Debug.Log($"[SacrificialDummy] Chance: {chance}, Roll: {roll}, Success? {roll <= chance}");
+        if (enableDebugLogs)
+            Debug.Log($"[SacrificialDummyEffect] Frosted: {wasFrosted}, Chance: {chance * 100}%, Roll: {roll * 100}%");
 
         if (roll > chance)
         {
-            Debug.Log("[SacrificialDummy] Failed chance roll - enemy dies normally");
+            if (enableDebugLogs) Debug.Log("[SacrificialDummyEffect] Roll failed, no turret.");
             return;
         }
 
-        Debug.Log("[SacrificialDummy] SUCCESS! Converting to turret!");
+        if (enableDebugLogs) Debug.Log($"[SacrificialDummyEffect] Converting {dead.name} to turret!");
 
-        // PREVENT destruction by marking it BEFORE Die() is called
         dead.MarkAsConvertingToTurret();
-
-        // Store reference
-        GameObject enemyGO = dead.gameObject;
-        Vector3 deathPosition = enemyGO.transform.position;
-
-        // Convert to turret
-        StartCoroutine(ConvertToTurretDelayed(enemyGO, deathPosition, isFrosted));
+        StartCoroutine(ConvertToTurretCoroutine(dead.gameObject, dead.transform.position, wasFrosted));
     }
 
-    private IEnumerator ConvertToTurretDelayed(GameObject enemyGO, Vector3 position, bool wasFrosted)
+    private IEnumerator ConvertToTurretCoroutine(GameObject enemyGO, Vector3 frozenPos, bool wasFrosted)
     {
-        // Wait one frame for everything to settle
         yield return null;
 
-        if (!enemyGO) yield break;
+        if (!enemyGO)
+        {
+            if (enableDebugLogs) Debug.LogWarning("[SacrificialDummyEffect] Enemy GameObject destroyed before conversion!");
+            yield break;
+        }
 
-        ConvertToTurret(enemyGO, position, wasFrosted);
-    }
+        if (enableDebugLogs) Debug.Log($"[SacrificialDummyEffect] Converting {enemyGO.name} at {frozenPos}, wasFrosted: {wasFrosted}");
 
-    private void ConvertToTurret(GameObject enemyGO, Vector3 frozenPosition, bool wasFrosted)
-    {
-        if (!enemyGO) return;
-
-        // CRITICAL: Cancel any pending Destroy on this GameObject
-        // This won't work on objects already destroyed, but will work on Destroy() calls with delay
-
-        // Disable EnemyHealth to prevent further damage/death
         var eh = enemyGO.GetComponent<EnemyHealth>();
         if (eh)
         {
             eh.enabled = false;
-            // Hide HP bar
-            if (eh.hpUIRoot != null)
-            {
-                Destroy(eh.hpUIRoot.gameObject);
-                eh.hpUIRoot = null;
-            }
+            if (eh.hpUIRoot != null) Destroy(eh.hpUIRoot.gameObject);
         }
 
-        // Disable movement
         var follow = enemyGO.GetComponent<EnemyFollow>();
-        if (follow)
-        {
-            follow.enabled = false;
-            follow.moveSpeed = 0f;
-        }
+        if (follow) follow.enabled = false;
 
-        // Freeze rigidbody completely
         var rb = enemyGO.GetComponent<Rigidbody2D>();
         if (rb)
         {
@@ -133,63 +131,45 @@ public class SacrificialDummyEffect : MonoBehaviour
             rb.bodyType = RigidbodyType2D.Static;
         }
 
-        // Disable colliders
         var colliders = enemyGO.GetComponents<Collider2D>();
         foreach (var col in colliders)
         {
             if (col) col.enabled = false;
         }
 
-        // Lock position
-        enemyGO.transform.position = frozenPosition;
+        enemyGO.transform.position = frozenPos;
 
-        // Change color to light blue
         var renderers = enemyGO.GetComponentsInChildren<SpriteRenderer>();
-        for (int i = 0; i < renderers.Length; i++)
+        foreach (var rend in renderers)
         {
-            renderers[i].color = turretTint;
+            rend.color = turretTint;
         }
 
-        // Start firing shards - run on THIS component (player), not the enemy
-        StartCoroutine(TurretRoutine(enemyGO, frozenPosition, wasFrosted));
-    }
+        Vector2 lockedDirection = FindNearestEnemyDir(frozenPos);
 
-    private IEnumerator TurretRoutine(GameObject turretGO, Vector3 frozenPosition, bool wasFrosted)
-    {
-        if (!turretGO) yield break;
+        if (enableDebugLogs) Debug.Log($"[SacrificialDummyEffect] Turret firing {shardsToFire} shards in direction: {lockedDirection}");
 
-        // Fire all shards with intervals
         for (int i = 0; i < shardsToFire; i++)
         {
-            if (!turretGO) yield break;
+            if (!enemyGO) yield break;
 
-            // Keep locked in position
-            turretGO.transform.position = frozenPosition;
-
-            FireShard(frozenPosition, wasFrosted);
+            enemyGO.transform.position = frozenPos;
+            FireShardInDirection(frozenPos, lockedDirection, wasFrosted);
 
             yield return new WaitForSeconds(fireInterval);
         }
 
-        // After all shards fired, destroy the turret
-        if (turretGO)
-        {
-            Destroy(turretGO);
-        }
+        if (enableDebugLogs) Debug.Log($"[SacrificialDummyEffect] Turret finished, destroying");
+        if (enemyGO) Destroy(enemyGO);
     }
 
-    private void FireShard(Vector3 origin, bool fromFrostedEnemy)
+    private void FireShardInDirection(Vector3 origin, Vector2 direction, bool fromFrostedEnemy)
     {
         if (!frostShardPrefab) return;
 
-        // Find nearest LIVING enemy to aim at
-        Vector2 aimDir = FindNearestLivingEnemyDirection(origin);
+        float angle = Random.Range(-spreadAngle * 0.1f, spreadAngle * 0.1f);
+        Vector2 finalDir = Quaternion.Euler(0f, 0f, angle) * direction;
 
-        // Add random spread
-        float offset = Random.Range(-spreadAngle, spreadAngle);
-        aimDir = Quaternion.Euler(0f, 0f, offset) * aimDir;
-
-        // Spawn shard
         var go = Instantiate(frostShardPrefab, origin, Quaternion.identity);
         var shard = go.GetComponent<FrostShardProjectile>();
         if (!shard) shard = go.AddComponent<FrostShardProjectile>();
@@ -199,53 +179,50 @@ public class SacrificialDummyEffect : MonoBehaviour
         shard.lifetime = shardLifetime;
         shard.damage = shardDamage;
 
-        // 20% chance to apply frost if from frosted enemy
-        bool applyFrost = fromFrostedEnemy && (Random.value <= shardFrostChance);
+        bool shouldApplyFrost = fromFrostedEnemy && (Random.value <= shardFrostChance);
 
-        shard.frostOnHit = applyFrost;
-        if (applyFrost)
+        if (enableDebugLogs)
+            Debug.Log($"[SacrificialDummyEffect] fromFrostedEnemy: {fromFrostedEnemy}, shardFrostChance: {shardFrostChance}, roll: {Random.value}, shouldApplyFrost: {shouldApplyFrost}");
+
+        shard.frostOnHit = shouldApplyFrost;
+        if (shouldApplyFrost)
         {
             shard.frostSlowFactor = frostSlow;
             shard.frostDuration = frostDuration;
             shard.frostIcon = frostIcon;
             shard.iconPivot = frostIconPivot;
             shard.iconSize = frostIconSize;
+
+            if (enableDebugLogs)
+                Debug.Log($"[SacrificialDummyEffect] Shard configured with frost: slow={frostSlow}, duration={frostDuration}, icon={(frostIcon != null ? frostIcon.name : "null")}");
         }
 
-        shard.Launch(aimDir);
+        shard.Launch(finalDir);
     }
 
-    private Vector2 FindNearestLivingEnemyDirection(Vector3 from)
+    private Vector2 FindNearestEnemyDir(Vector3 from)
     {
-        // Find ALL enemies in scene
-        EnemyHealth[] allEnemies = GameObject.FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] allEnemies = FindObjectsOfType<EnemyHealth>();
         Transform best = null;
-        float bestDist = float.PositiveInfinity;
+        float bestDist = float.MaxValue;
 
         foreach (var enemy in allEnemies)
         {
-            if (!enemy || !enemy.enabled) continue; // Skip disabled enemies (turrets)
-
-            // Check if on enemy layer
+            if (!enemy || !enemy.enabled) continue;
             if (((1 << enemy.gameObject.layer) & enemyLayers.value) == 0) continue;
 
-            float d = (enemy.transform.position - from).sqrMagnitude;
-
-            // Must be at least 0.5 units away (not self)
-            if (d > 0.25f && d < bestDist)
+            float dist = (enemy.transform.position - from).sqrMagnitude;
+            if (dist > 0.25f && dist < bestDist)
             {
-                bestDist = d;
+                bestDist = dist;
                 best = enemy.transform;
             }
         }
 
         if (best != null)
-        {
             return ((Vector2)best.position - (Vector2)from).normalized;
-        }
 
-        // No enemies found - aim at random direction
-        float angle = Random.Range(0f, 360f);
-        return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+        float randAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        return new Vector2(Mathf.Cos(randAngle), Mathf.Sin(randAngle));
     }
 }

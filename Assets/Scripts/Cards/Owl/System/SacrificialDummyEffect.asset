@@ -19,15 +19,15 @@ MonoBehaviour:
   shardsToFire: 6
   fireInterval: 0.12
   spreadAngle: 20
-  seekRange: 100
+  seekRange: 8
   frostShardPrefab: {fileID: 8254543058356260665, guid: 23112d2c0475bbe47be3e24b0b66f7c0, type: 3}
-  shardSpeed: 10
+  shardSpeed: 18
   shardLifetime: 2.5
   shardDamage: 12
   enemyLayers:
     serializedVersion: 2
     m_Bits: 8
-  frostSlow: 0.5
+  frostSlow: 0.6
   frostDuration: 3
   frostIcon: {fileID: 8842744376882955741, guid: 460280c05290c914ab27d3a100e7b900, type: 3}
   frostIconPivot: {x: 0, y: 0.85}

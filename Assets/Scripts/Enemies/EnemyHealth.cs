@@ -228,22 +228,20 @@ public class EnemyHealth : MonoBehaviour
 
     private void Die()
     {
-        // CRITICAL: If being converted to turret, don't destroy yet
-        if (_convertingToTurret) return;
-
         DropXP();
-
-        // Announce death to listeners (cards, etc.)
         OnAnyEnemyDied?.Invoke(this);
 
-        // Clean up UI (disable if pooling)
-        if (hpUIRoot != null)
+        if (_convertingToTurret)
         {
-            Destroy(hpUIRoot.gameObject);
+            Debug.Log($"[EnemyHealth] {name} marked for turret conversion, skipping destruction.");
+            return;
         }
 
+        if (hpUIRoot != null) Destroy(hpUIRoot.gameObject);
         Destroy(gameObject);
     }
+
+
 
     // Add this new public method at the end:
     public void MarkAsConvertingToTurret()

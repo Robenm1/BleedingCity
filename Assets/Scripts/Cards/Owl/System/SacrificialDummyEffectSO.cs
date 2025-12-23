@@ -4,13 +4,8 @@ using UnityEngine;
 public class SacrificialDummyEffectSO : CardEffectSO
 {
     [Header("Turret Spawn Chances")]
-    [Tooltip("Base chance for non-frosted enemies to become turrets.")]
     [Range(0f, 1f)] public float baseTurretChance = 0.20f;
-    [Tooltip("If enemy is frosted when dying, use this chance (1.0 = 100%).")]
     [Range(0f, 1f)] public float frostedTurretChance = 1.0f;
-
-    [Header("Shard Frost Application")]
-    [Tooltip("Chance for shards to apply Frosted to enemies they hit.")]
     [Range(0f, 1f)] public float shardFrostChance = 0.20f;
 
     [Header("Turret Settings")]
@@ -21,14 +16,13 @@ public class SacrificialDummyEffectSO : CardEffectSO
     public float seekRange = 8f;
 
     [Header("Projectile")]
-    [Tooltip("MUST BE ASSIGNED! The frost shard prefab to shoot.")]
     public GameObject frostShardPrefab;
     public float shardSpeed = 18f;
     public float shardLifetime = 2.5f;
     public float shardDamage = 12f;
     public LayerMask enemyLayers;
 
-    [Header("Frost Effect (when applied)")]
+    [Header("Frost Effect")]
     [Range(0.05f, 1f)] public float frostSlow = 0.6f;
     public float frostDuration = 2.5f;
     public Sprite frostIcon;
@@ -37,28 +31,11 @@ public class SacrificialDummyEffectSO : CardEffectSO
 
     public override void Apply(GameObject player)
     {
-        if (!player)
-        {
-            Debug.LogError("[SacrificialDummySO] Player is null!");
-            return;
-        }
-
-        if (!frostShardPrefab)
-        {
-            Debug.LogError("[SacrificialDummySO] frostShardPrefab is not assigned! Card will not work!");
-            return;
-        }
-
-        Debug.Log("[SacrificialDummySO] Applying card to player...");
+        if (!player) return;
 
         var eff = player.GetComponent<SacrificialDummyEffect>();
-        if (!eff)
-        {
-            eff = player.AddComponent<SacrificialDummyEffect>();
-            Debug.Log("[SacrificialDummySO] Added SacrificialDummyEffect component");
-        }
+        if (!eff) eff = player.AddComponent<SacrificialDummyEffect>();
 
-        // Transfer all values from SO to runtime component
         eff.baseTurretChance = baseTurretChance;
         eff.frostedTurretChance = frostedTurretChance;
         eff.shardFrostChance = shardFrostChance;
@@ -75,14 +52,8 @@ public class SacrificialDummyEffectSO : CardEffectSO
         eff.frostSlow = Mathf.Clamp(frostSlow, 0.05f, 1f);
         eff.frostDuration = Mathf.Max(0f, frostDuration);
         eff.frostIcon = frostIcon;
+        eff.frostIcon = frostIcon;
         eff.frostIconPivot = frostIconPivot;
         eff.frostIconSize = frostIconSize;
-
-        Debug.Log($"[SacrificialDummySO] Values transferred. Prefab assigned? {eff.frostShardPrefab != null}");
-
-        // CRITICAL: Enable the effect to subscribe to death events
-        eff.Enable();
-
-        Debug.Log("[SacrificialDummySO] Card applied successfully!");
     }
 }
