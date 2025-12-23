@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bbba40aaf098054486ce7d7a8d53c69, type: 3}
+  m_Name: DivineFeatherEffect
+  m_EditorClassIdentifier: Assembly-CSharp::DivineFeatherEffectSO
+  triggerHpThreshold: 0.1
+  shootHpThreshold: 0.5
+  featherPrefab: {fileID: 8254543058356260665, guid: 6ca2af67682001746849dfc81e30e959, type: 3}
+  featherCount: 8
+  orbitRadius: 2
+  orbitSpeed: 90
+  damageReduction: 0.5
+  healPerSecond: 3
+  recallSpeedMultiplier: 2
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  orbitColor: {r: 1, g: 1, b: 1, a: 1}
