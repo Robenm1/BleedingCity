@@ -368,7 +368,6 @@ RectTransform:
   m_Children:
   - {fileID: 6830285506241899598}
   - {fileID: 434571037319545271}
-  - {fileID: 7997569581833980767}
   - {fileID: 1689317142696421887}
   - {fileID: 5358631206353642161}
   m_Father: {fileID: 0}
@@ -892,16 +891,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2404966277170101994}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4931850645396927492}
+  m_Father: {fileID: 434571037319545271}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -890.7, y: 458.53998}
+  m_AnchoredPosition: {x: 41.700073, y: -3.2600098}
   m_SizeDelta: {x: 24.1252, y: 33.2131}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5129528664676432389
@@ -2219,8 +2218,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StatsPanelCharacterIcon
   characterIconImage: {fileID: 1100590512456284550}
-  carrierTypeName: CharacterSelectManager
-  characterMemberName: CharacterSelectUIManager
   useButtonIcon: 1
   verboseLogs: 1
 --- !u!1 &5295856481725927368
@@ -4763,7 +4760,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 7997569581833980767}
   m_Father: {fileID: 4931850645396927492}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}

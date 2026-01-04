@@ -37,14 +37,31 @@ public class PlayerMovement : MonoBehaviour
     private float dashCooldownTimer;
     private Vector2 dashDir;
 
+
+    private PyroAbility1 pyroAbility;
     // cache per-frame
-    private float baseMoveSpeed => (stats != null ? stats.GetMoveSpeed() : 5f) * moveMultiplier;
+    private float baseMoveSpeed
+    {
+        get
+        {
+            float speed = (stats != null ? stats.GetMoveSpeed() : 5f) * moveMultiplier;
+
+            // Apply Pyro Ability 1 speed buff if active
+            if (pyroAbility != null)
+            {
+                speed *= pyroAbility.GetSpeedMultiplier();
+            }
+
+            return speed;
+        }
+    }
     private float dashSpeed => (stats != null ? stats.GetDashSpeed() : 12f);
     private float dashDuration => (stats != null ? stats.GetDashDuration() : 0.15f);
     private float dashCooldown => (stats != null ? stats.GetDashCooldown() : 2f);
 
     private void Awake()
     {
+        pyroAbility = GetComponent<PyroAbility1>();
         rb = GetComponent<Rigidbody2D>();
         stats = GetComponent<PlayerStats>();
         cloneAbility = GetComponent<OwlCloneAbility>(); // NEW: find clone ability
