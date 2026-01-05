@@ -26,6 +26,19 @@ public class PyroSlashAutoAttack : MonoBehaviour
     [Tooltip("Slash range/radius")]
     public float slashRange = 2f;
 
+    [Header("Gizmo Settings")]
+    [Tooltip("Show slash radius in editor")]
+    public bool showSlashGizmo = true;
+
+    [Tooltip("Show attack detection range")]
+    public bool showDetectionGizmo = true;
+
+    [Tooltip("Gizmo color for slash area")]
+    public Color slashGizmoColor = new Color(1f, 0.5f, 0f, 0.3f);
+
+    [Tooltip("Gizmo color for detection range")]
+    public Color detectionGizmoColor = new Color(1f, 1f, 0f, 0.2f);
+
     private float attackTimer;
     private PlayerStats stats;
 
@@ -107,5 +120,70 @@ public class PyroSlashAutoAttack : MonoBehaviour
             sourcePosition: slashPosition,
             direction: direction
         );
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector3 center = transform.position;
+        Vector3 spawnPos = firePoint ? firePoint.position : center;
+
+        if (showDetectionGizmo)
+        {
+            float attackRange = stats ? stats.GetAttackRange() : 5f;
+            Gizmos.color = detectionGizmoColor;
+            Gizmos.DrawWireSphere(center, attackRange);
+
+            Gizmos.color = new Color(detectionGizmoColor.r, detectionGizmoColor.g, detectionGizmoColor.b, 1f);
+            Gizmos.DrawLine(center, center + Vector3.right * attackRange * 0.3f);
+            Gizmos.DrawLine(center, center + Vector3.up * attackRange * 0.3f);
+        }
+
+        if (showSlashGizmo)
+        {
+            Vector3 facingDirection = transform.right;
+            Vector3 slashCenter = spawnPos + facingDirection * slashDistance;
+
+            Gizmos.color = slashGizmoColor;
+            Gizmos.DrawWireSphere(slashCenter, slashRange);
+
+            Gizmos.color = new Color(slashGizmoColor.r, slashGizmoColor.g, slashGizmoColor.b, 1f);
+            DrawArc(slashCenter, facingDirection, slashArcAngle, slashRange);
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(spawnPos, slashCenter);
+            Gizmos.DrawWireSphere(slashCenter, 0.1f);
+        }
+    }
+
+    private void DrawArc(Vector3 center, Vector3 forward, float arcAngle, float radius)
+    {
+        float halfAngle = arcAngle * 0.5f;
+        int segments = 20;
+
+        Vector3 previousPoint = Vector3.zero;
+
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, i / (float)segments);
+            float angleRad = (Mathf.Atan2(forward.y, forward.x) + angle * Mathf.Deg2Rad);
+
+            Vector3 point = center + new Vector3(
+                Mathf.Cos(angleRad) * radius,
+                Mathf.Sin(angleRad) * radius,
+                0f
+            );
+
+            if (i > 0)
+            {
+                Gizmos.DrawLine(previousPoint, point);
+            }
+
+            if (i == 0 || i == segments)
+            {
+                Gizmos.DrawLine(center, point);
+            }
+
+            previousPoint = point;
+        }
     }
 }

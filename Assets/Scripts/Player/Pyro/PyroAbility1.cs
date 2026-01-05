@@ -24,6 +24,13 @@ public class PyroAbility1 : MonoBehaviour
     [Header("Level 2: Fire Eagle - Dual Barrage")]
     public float barrageDuration = 5f;
 
+    [Header("Level 3: Fire Dog - Alpha Strike")]
+    public int alphaStrikeSlashCount = 5;
+    public float alphaStrikeDamagePerSlash = 30f;
+    public float alphaStrikeRange = 15f;
+    public float slashInterval = 0.15f;
+    public GameObject slashEffectPrefab;
+
     [Header("Shield Visual")]
     [Tooltip("Shield sprite GameObject (child of player)")]
     public GameObject shieldVisual;
@@ -148,7 +155,7 @@ public class PyroAbility1 : MonoBehaviour
                 ActivateDualBarrage();
                 break;
             case 3:
-                if (showDebug) Debug.Log("[PyroAbility1] Dog ability - Not implemented yet");
+                ActivateDogAlphaStrike();
                 break;
             case 4:
                 if (showDebug) Debug.Log("[PyroAbility1] Golem ability - Not implemented yet");
@@ -227,6 +234,26 @@ public class PyroAbility1 : MonoBehaviour
         if (showDebug)
         {
             Debug.Log($"[PyroAbility1] Dual Barrage activated! Duration: {barrageDuration}s - Eagle shoots 2 fireballs!");
+        }
+    }
+
+    private void ActivateDogAlphaStrike()
+    {
+        var dog = summonTracker.GetCurrentSummon()?.GetComponent<FireDog>();
+        if (dog == null)
+        {
+            if (showDebug) Debug.LogWarning("[PyroAbility1] No Fire Dog found!");
+            return;
+        }
+
+        dog.PerformAlphaStrike(alphaStrikeSlashCount, alphaStrikeDamagePerSlash, alphaStrikeRange, slashInterval, slashEffectPrefab);
+
+        float cd = baseCooldown * (stats ? stats.GetCooldownMultiplier() : 1f);
+        cooldownTimer = cd;
+
+        if (showDebug)
+        {
+            Debug.Log($"[PyroAbility1] Alpha Strike activated! {alphaStrikeSlashCount} slashes!");
         }
     }
 

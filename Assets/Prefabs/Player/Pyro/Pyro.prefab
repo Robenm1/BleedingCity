@@ -174,12 +174,12 @@ MonoBehaviour:
   baseCooldown: 8
   rushDuration: 3
   rushSpeedMultiplier: 2.5
-  rushHealthBoost: 50
   enemyLayers:
     serializedVersion: 2
     m_Bits: 8
   rushVisualTint: {r: 1, g: 0.5, b: 0, a: 1}
-  shieldVisual: {fileID: 0}
+  barrageDuration: 5
+  shieldVisual: {fileID: 9094629183820588397}
   enableShieldPulse: 1
   shieldPulseSpeed: 3
   shieldPulseScale: {x: 0.95, y: 1.05}
@@ -198,10 +198,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SummonEvolutionTracker
   currentLevel: 0
   loopCount: 0
-  healingRequired: 60
+  healingRequired: 10
+  killsRequired: 2
   fireSpiritPrefab: {fileID: 9000795926370918940, guid: b4f905e7cccbbfe4d8ec102f3bed131b, type: 3}
-  demonEaglePrefab: {fileID: 0}
-  demonicDogPrefab: {fileID: 0}
+  fireEaglePrefab: {fileID: 7820059156214029710, guid: f7ed1cf62bd8f444fae4a8b633929a29, type: 3}
+  fireDogPrefab: {fileID: 0}
   fireGolemPrefab: {fileID: 0}
   showDebug: 1
 --- !u!114 &-3917791599823754831
@@ -386,7 +387,7 @@ MonoBehaviour:
   xpRequiredForNextLevel: 10
   xpSlider: {fileID: 1128025194115027679}
   xpText: {fileID: 956721958942531323}
-  coinText: {fileID: 8492834704239860450}
+  coinText: {fileID: 7209958269426631100}
 --- !u!114 &611069160130197109
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1628,6 +1629,38 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 44.32959
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 25.60669
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 62.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471584577879619730, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -48.758
+      objectReference: {fileID: 0}
     - target: {fileID: 5601320913903286764, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
       propertyPath: m_fontSize
       value: 20
@@ -1802,9 +1835,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
---- !u!114 &8492834704239860450 stripped
+--- !u!114 &7209958269426631100 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2727722391952216839, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+  m_CorrespondingSourceObject: {fileID: 3749431279141242969, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
   m_PrefabInstance: {fileID: 5766381286954584549}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}

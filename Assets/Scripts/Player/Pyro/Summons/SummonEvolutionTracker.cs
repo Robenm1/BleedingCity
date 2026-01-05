@@ -14,6 +14,10 @@ public class SummonEvolutionTracker : MonoBehaviour
     public int killsRequired = 50;
     private int totalKills = 0;
 
+    [Header("Level 3: Fire Dog → Golem")]
+    public float damageRequired = 1000f;
+    private float totalDamage = 0f;
+
     [Header("Summon Prefabs")]
     public GameObject fireSpiritPrefab;
     public GameObject fireEaglePrefab;
@@ -44,7 +48,6 @@ public class SummonEvolutionTracker : MonoBehaviour
     {
         return currentSummon;
     }
-
 
     public void SpawnFireSpirit()
     {
@@ -135,7 +138,50 @@ public class SummonEvolutionTracker : MonoBehaviour
             Destroy(currentSummon);
         }
 
-        currentLevel = 3;
+        if (fireDogPrefab)
+        {
+            currentSummon = Instantiate(fireDogPrefab, transform.position, Quaternion.identity);
+            var dog = currentSummon.GetComponent<FireDog>();
+            if (dog) dog.owner = transform;
+
+            currentLevel = 3;
+            totalDamage = 0f;
+
+            if (showDebug) Debug.Log($"[SummonEvolution] Fire Dog spawned! Need {damageRequired} damage to evolve.");
+        }
+        else
+        {
+            currentLevel = 3;
+        }
+    }
+
+    public void OnDamageDealt(float damage)
+    {
+        if (currentLevel != 3) return;
+
+        totalDamage += damage;
+
+        if (showDebug && totalDamage % 100 < damage)
+        {
+            Debug.Log($"[SummonEvolution] Damage progress: {totalDamage:F0}/{damageRequired}");
+        }
+
+        if (totalDamage >= damageRequired)
+        {
+            EvolveToGolem();
+        }
+    }
+
+    private void EvolveToGolem()
+    {
+        if (showDebug) Debug.Log("[SummonEvolution] Fire Dog evolving to Fire Golem!");
+
+        if (currentSummon != null)
+        {
+            Destroy(currentSummon);
+        }
+
+        currentLevel = 4;
     }
 
     public float GetEvolutionProgress()
@@ -146,6 +192,8 @@ public class SummonEvolutionTracker : MonoBehaviour
                 return Mathf.Clamp01(totalHealingDone / healingRequired);
             case 2:
                 return Mathf.Clamp01((float)totalKills / killsRequired);
+            case 3:
+                return Mathf.Clamp01(totalDamage / damageRequired);
             default:
                 return 0f;
         }
@@ -160,7 +208,9 @@ public class SummonEvolutionTracker : MonoBehaviour
             case 2:
                 return $"Kill {totalKills}/{killsRequired} enemies";
             case 3:
-                return "Max evolution (Dog)";
+                return $"Deal {totalDamage:F0}/{damageRequired} damage";
+            case 4:
+                return "Max evolution (Golem)";
             default:
                 return "No summon";
         }
