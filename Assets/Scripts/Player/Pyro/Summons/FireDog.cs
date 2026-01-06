@@ -83,7 +83,6 @@ public class FireDog : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private SpriteRenderer dogSpriteRenderer;
     private Collider2D dogCollider;
-    private SummonEvolutionTracker evolutionTracker;
 
     private Vector2 wanderPoint;
     private float wanderTimer = 0f;
@@ -97,11 +96,6 @@ public class FireDog : MonoBehaviour
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player) owner = player.transform;
-        }
-
-        if (owner)
-        {
-            evolutionTracker = owner.GetComponent<SummonEvolutionTracker>();
         }
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -292,11 +286,6 @@ public class FireDog : MonoBehaviour
             float damage = biteDamage;
             enemyHealth.TakeDamage(damage);
 
-            if (evolutionTracker != null)
-            {
-                evolutionTracker.OnDamageDealt(damage);
-            }
-
             if (showDebug) Debug.Log($"[FireDog] Bit {currentTarget.name} for {damage} damage!");
         }
 
@@ -482,11 +471,6 @@ public class FireDog : MonoBehaviour
                 if (enemyHealth != null)
                 {
                     enemyHealth.TakeDamage(damagePerSlash);
-
-                    if (evolutionTracker != null)
-                    {
-                        evolutionTracker.OnDamageDealt(damagePerSlash);
-                    }
 
                     if (showDebug) Debug.Log($"[FireDog] Alpha Strike slash {i + 1}/{slashCount} hit {target.name}!");
                 }

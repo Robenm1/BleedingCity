@@ -34,49 +34,49 @@ public class LevelUpUIManager : MonoBehaviour
     public TextMeshProUGUI choice2Description;
     public Button choice2Button;
 
-    // The rolled options being shown right now
     private BuffData[] currentChoices;
-
-    // We need to give the chosen buff to the player
     private PlayerBuffInventory buffInventory;
+    private bool isPanelOpen;
 
     private void Awake()
     {
-        // Grab the player's buff inventory
         buffInventory = FindObjectOfType<PlayerBuffInventory>();
         if (buffInventory == null)
         {
             Debug.LogWarning("[LevelUpUIManager] No PlayerBuffInventory found in scene.");
         }
 
-        // Make sure the panel starts hidden in normal gameplay
         if (levelUpPanel != null)
             levelUpPanel.SetActive(false);
+
+        isPanelOpen = false;
     }
 
-    /// <summary>
-    /// Called (by LevelUpHandler) when the player has successfully leveled.
-    /// - Picks random buffs
-    /// - Shows the panel with those buffs
-    /// - Pauses the game (Time.timeScale = 0)
-    /// </summary>
+    public bool IsPanelOpen()
+    {
+        return isPanelOpen;
+    }
+
     public void OpenLevelUpPanel()
     {
+        if (isPanelOpen)
+        {
+            Debug.LogWarning("[LevelUpUIManager] Panel is already open. Ignoring request.");
+            return;
+        }
+
         if (allBuffs == null || allBuffs.Count == 0)
         {
             Debug.LogWarning("[LevelUpUIManager] allBuffs is empty. No buffs to offer.");
             return;
         }
 
-        // Roll unique random buffs for this choice
         currentChoices = GetRandomUniqueBuffs(choicesPerLevel);
 
-        // Fill the UI slots with the chosen buffs
         FillChoiceSlot(choice0Icon, choice0Name, choice0Description, 0);
         FillChoiceSlot(choice1Icon, choice1Name, choice1Description, 1);
         FillChoiceSlot(choice2Icon, choice2Name, choice2Description, 2);
 
-        // Assign button listeners
         choice0Button.onClick.RemoveAllListeners();
         choice1Button.onClick.RemoveAllListeners();
         choice2Button.onClick.RemoveAllListeners();
@@ -85,21 +85,15 @@ public class LevelUpUIManager : MonoBehaviour
         choice1Button.onClick.AddListener(() => ChooseBuff(1));
         choice2Button.onClick.AddListener(() => ChooseBuff(2));
 
-        // Show panel
         if (levelUpPanel != null)
             levelUpPanel.SetActive(true);
 
-        // Pause time while the panel is open
+        isPanelOpen = true;
         Time.timeScale = 0f;
     }
 
-    /// <summary>
-    /// Called when the player clicks one of the buff buttons.
-    /// Gives the buff, handles rarity rules, closes the panel, and unpauses.
-    /// </summary>
     private void ChooseBuff(int index)
     {
-        // Safety checks
         if (currentChoices == null || index < 0 || index >= currentChoices.Length)
             return;
 
@@ -109,13 +103,11 @@ public class LevelUpUIManager : MonoBehaviour
 
         Debug.Log("[LevelUpUIManager] Player chose: " + chosen.buffName + " (" + chosen.rarity + ")");
 
-        // Add the buff to the player's inventory
         if (buffInventory != null)
         {
             buffInventory.AddBuff(chosen);
         }
 
-        // If Epic or Legendary, remove it from the pool so it won't show again this run
         if (chosen.rarity == Rarity.Epic || chosen.rarity == Rarity.Legendary)
         {
             for (int i = allBuffs.Count - 1; i >= 0; i--)
@@ -130,25 +122,16 @@ public class LevelUpUIManager : MonoBehaviour
         CloseLevelUpPanel();
     }
 
-    /// <summary>
-    /// Hides the panel and unpauses the game.
-    /// </summary>
     private void CloseLevelUpPanel()
     {
         if (levelUpPanel != null)
             levelUpPanel.SetActive(false);
 
-        // Unpause
+        isPanelOpen = false;
         Time.timeScale = 1f;
-
-        // Clear memory of the last roll
         currentChoices = null;
     }
 
-    /// <summary>
-    /// Fill icon/name/description for one of the choice slots.
-    /// If no buff available for that index (like pool runs out), we blank that slot.
-    /// </summary>
     private void FillChoiceSlot(
         Image iconTarget,
         TextMeshProUGUI nameTarget,
@@ -158,7 +141,6 @@ public class LevelUpUIManager : MonoBehaviour
     {
         if (currentChoices == null || index >= currentChoices.Length || currentChoices[index] == null)
         {
-            // slot is empty, clear visuals
             if (iconTarget != null) iconTarget.sprite = null;
             if (nameTarget != null) nameTarget.text = "";
             if (descTarget != null) descTarget.text = "";
@@ -177,19 +159,13 @@ public class LevelUpUIManager : MonoBehaviour
             descTarget.text = data.description;
     }
 
-    /// <summary>
-    /// Take a shuffled copy of the pool and return up to N unique buffs.
-    /// If the pool is smaller than requested, we just return as many as we have.
-    /// </summary>
     private BuffData[] GetRandomUniqueBuffs(int amount)
     {
         if (allBuffs == null || allBuffs.Count == 0)
             return new BuffData[0];
 
-        // Copy the pool so we don't mutate it while picking
         List<BuffData> tempList = new List<BuffData>(allBuffs);
 
-        // Fisher-Yates shuffle
         for (int i = 0; i < tempList.Count; i++)
         {
             int j = Random.Range(i, tempList.Count);

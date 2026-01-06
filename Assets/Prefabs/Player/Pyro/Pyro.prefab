@@ -205,11 +205,12 @@ MonoBehaviour:
   loopCount: 0
   healingRequired: 10
   killsRequired: 2
-  damageRequired: 1000
+  distanceRequired: 20
+  golemLoopsOnDeath: 0
   fireSpiritPrefab: {fileID: 9000795926370918940, guid: b4f905e7cccbbfe4d8ec102f3bed131b, type: 3}
   fireEaglePrefab: {fileID: 7820059156214029710, guid: f7ed1cf62bd8f444fae4a8b633929a29, type: 3}
   fireDogPrefab: {fileID: 3595047284657239993, guid: ae4dc3b88eb96ba4db86621a87634e75, type: 3}
-  fireGolemPrefab: {fileID: 0}
+  fireGolemPrefab: {fileID: 3404232902331351849, guid: 73487cbf11c27b14993158eb6d9655a2, type: 3}
   showDebug: 1
 --- !u!114 &-3917791599823754831
 MonoBehaviour:
@@ -1247,7 +1248,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 0}
   m_FillRect: {fileID: 6088402022168765900}
   m_HandleRect: {fileID: 0}

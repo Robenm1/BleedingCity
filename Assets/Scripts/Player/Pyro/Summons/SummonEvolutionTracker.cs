@@ -15,8 +15,13 @@ public class SummonEvolutionTracker : MonoBehaviour
     private int totalKills = 0;
 
     [Header("Level 3: Fire Dog → Golem")]
-    public float damageRequired = 1000f;
-    private float totalDamage = 0f;
+    public float distanceRequired = 500f;
+    private float totalDistance = 0f;
+    private Vector3 lastPosition;
+
+    [Header("Level 4: Fire Golem → ???")]
+    [Tooltip("The Golem doesn't auto-evolve. It loops back to Spirit when killed.")]
+    public bool golemLoopsOnDeath = true;
 
     [Header("Summon Prefabs")]
     public GameObject fireSpiritPrefab;
@@ -31,7 +36,16 @@ public class SummonEvolutionTracker : MonoBehaviour
 
     private void Start()
     {
+        lastPosition = transform.position;
         SpawnFireSpirit();
+    }
+
+    private void Update()
+    {
+        if (currentLevel == 3)
+        {
+            TrackDistance();
+        }
     }
 
     private void OnEnable()
@@ -65,7 +79,7 @@ public class SummonEvolutionTracker : MonoBehaviour
             currentLevel = 1;
             totalHealingDone = 0f;
 
-            if (showDebug) Debug.Log($"[SummonEvolution] Fire Spirit spawned! Need {healingRequired} HP healed to evolve.");
+            if (showDebug) Debug.Log($"[SummonEvolution] Fire Spirit spawned! (Loop: {loopCount}) Need {healingRequired} HP healed to evolve.");
         }
     }
 
@@ -145,9 +159,10 @@ public class SummonEvolutionTracker : MonoBehaviour
             if (dog) dog.owner = transform;
 
             currentLevel = 3;
-            totalDamage = 0f;
+            totalDistance = 0f;
+            lastPosition = transform.position;
 
-            if (showDebug) Debug.Log($"[SummonEvolution] Fire Dog spawned! Need {damageRequired} damage to evolve.");
+            if (showDebug) Debug.Log($"[SummonEvolution] Fire Dog spawned! Need {distanceRequired} units walked to evolve.");
         }
         else
         {
@@ -155,18 +170,20 @@ public class SummonEvolutionTracker : MonoBehaviour
         }
     }
 
-    public void OnDamageDealt(float damage)
+    private void TrackDistance()
     {
-        if (currentLevel != 3) return;
+        Vector3 currentPosition = transform.position;
+        float distanceThisFrame = Vector3.Distance(lastPosition, currentPosition);
 
-        totalDamage += damage;
+        totalDistance += distanceThisFrame;
+        lastPosition = currentPosition;
 
-        if (showDebug && totalDamage % 100 < damage)
+        if (showDebug && totalDistance % 50 < distanceThisFrame && distanceThisFrame > 0.01f)
         {
-            Debug.Log($"[SummonEvolution] Damage progress: {totalDamage:F0}/{damageRequired}");
+            Debug.Log($"[SummonEvolution] Distance progress: {totalDistance:F1}/{distanceRequired} units");
         }
 
-        if (totalDamage >= damageRequired)
+        if (totalDistance >= distanceRequired)
         {
             EvolveToGolem();
         }
@@ -181,7 +198,28 @@ public class SummonEvolutionTracker : MonoBehaviour
             Destroy(currentSummon);
         }
 
-        currentLevel = 4;
+        if (fireGolemPrefab)
+        {
+            currentSummon = Instantiate(fireGolemPrefab, transform.position, Quaternion.identity);
+            var golem = currentSummon.GetComponent<FireGolem>();
+            if (golem) golem.owner = transform;
+
+            currentLevel = 4;
+
+            if (showDebug) Debug.Log("[SummonEvolution] Fire Golem spawned! Golem will fight until destroyed.");
+        }
+        else
+        {
+            currentLevel = 4;
+        }
+    }
+
+    public void OnGolemDied()
+    {
+        if (showDebug) Debug.Log($"[SummonEvolution] Golem destroyed! Looping back to Fire Spirit...");
+
+        loopCount++;
+        SpawnFireSpirit();
     }
 
     public float GetEvolutionProgress()
@@ -193,7 +231,9 @@ public class SummonEvolutionTracker : MonoBehaviour
             case 2:
                 return Mathf.Clamp01((float)totalKills / killsRequired);
             case 3:
-                return Mathf.Clamp01(totalDamage / damageRequired);
+                return Mathf.Clamp01(totalDistance / distanceRequired);
+            case 4:
+                return 1f;
             default:
                 return 0f;
         }
@@ -208,9 +248,9 @@ public class SummonEvolutionTracker : MonoBehaviour
             case 2:
                 return $"Kill {totalKills}/{killsRequired} enemies";
             case 3:
-                return $"Deal {totalDamage:F0}/{damageRequired} damage";
+                return $"Walk {totalDistance:F0}/{distanceRequired} units";
             case 4:
-                return "Max evolution (Golem)";
+                return $"Fire Golem (Loop {loopCount})";
             default:
                 return "No summon";
         }

@@ -13,7 +13,6 @@ public class LevelUpHandler : MonoBehaviour
         controls = GetComponent<PlayerControls>();
         xpSystem = GetComponent<XPLevelSystem>();
 
-        // We look for the UI object in the scene
         uiManager = FindObjectOfType<LevelUpUIManager>();
         if (uiManager == null)
         {
@@ -32,28 +31,20 @@ public class LevelUpHandler : MonoBehaviour
         controls.OnLevelUp -= HandleLevelUpPressed;
     }
 
-    /// <summary>
-    /// Called when player presses the LevelUp button (like F).
-    /// This tries to actually BUY a level using XP+coins.
-    /// If successful, it then opens the buff choice UI.
-    /// </summary>
     private void HandleLevelUpPressed()
     {
-        // Try to spend for a level
-        // xpSystem.TrySpendForLevel():
-        // - checks affordability (XP + coins)
-        // - subtracts coins and XP (leaves XP overflow)
-        // - increases required XP for next level
-        // - updates UI (XP bar, coin text)
+        if (uiManager != null && uiManager.IsPanelOpen())
+        {
+            return;
+        }
+
         bool leveled = xpSystem.TrySpendForLevel();
 
         if (!leveled)
         {
-            // Not enough XP / not enough coins / can't level right now
             return;
         }
 
-        // If we succeeded buying a level, give player their buff choice
         if (uiManager != null)
         {
             uiManager.OpenLevelUpPanel();

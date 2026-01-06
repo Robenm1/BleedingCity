@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Pyro
   description: 'A Human detective who lived his whole life in the Underworld that
     manages to come back to the human world after the war '
-  characterPrefab: {fileID: 0}
+  characterPrefab: {fileID: 486357500185902644, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
   buttonIcon: {fileID: 4681670761512759807, guid: 5b25b3582a74c3d41a5666a9c1924d12, type: 3}
   selectedIcon: {fileID: -6916418980528325256, guid: c0a961cfdd4dcad4b849a5b62d1bdd59, type: 3}
   specialCards: []

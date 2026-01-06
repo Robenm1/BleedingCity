@@ -7,7 +7,7 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("The player to chase. If empty, we'll search for tag 'Player'.")]
     public Transform playerTarget;
 
-    private Rigidbody2D playerRB;   // to read player's velocity
+    private Rigidbody2D playerRB;
     private PlayerHealth playerHealth;
 
     [Header("Chase Settings")]
@@ -15,6 +15,9 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Stop moving if within this distance (prevents face-hugging).")]
     public float stopDistance = 1.2f;
     [Range(0f, 1f)] public float steeringSmooth = 0.15f;
+
+    [Header("Slow Effect")]
+    private float slowMultiplier = 1f;
 
     [Header("Anti-Block / Sidestep")]
     public bool avoidBlockingPlayer = true;
@@ -26,7 +29,6 @@ public class EnemyFollow : MonoBehaviour
     public float sidestepMaxSpeed = 5f;
     [Range(0f, 1f)] public float sidestepSmooth = 0.25f;
 
-    // ================= CONTACT DAMAGE (collision-based) =================
     [Header("Contact Damage (Collision)")]
     [Tooltip("Raw damage per tick while the player is colliding with this enemy.")]
     public float contactDamage = 10f;
@@ -43,7 +45,6 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Require collision to persist at least this long before the first tick.")]
     public float minimumContactTime = 0.1f;
 
-    // ================= STOP-AREA DAMAGE (trigger-based) =================
     [Header("Stop Area Damage (Trigger)")]
     [Tooltip("If true, the player takes damage when this enemy touches the player's 'stop area' trigger.")]
     public bool damageOnStopArea = true;
@@ -57,11 +58,9 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Layer(s) for the player's stop-area trigger if not using tag.")]
     public LayerMask stopAreaLayers;
 
-    // timers
     private float _nextDamageTime = 0f;
     private float _contactTimer = 0f;
 
-    // sidestep
     private bool isSidestepping = false;
     private float sidestepTimer = 0f;
     private Vector2 sidestepDirection;
@@ -73,12 +72,10 @@ public class EnemyFollow : MonoBehaviour
     private Vector2 chaseCurrentVelocity;
     private Vector2 chaseVelSmoothRef;
 
-    // reacquire timing if player missing
     private float _retryFindTimer = 0f;
 
     private void OnEnable()
     {
-        // Subscribe to player spawn/changes (works with anchor spawn)
         PlayerLocator.OnPlayerChanged += HandlePlayerChanged;
     }
 
@@ -90,17 +87,13 @@ public class EnemyFollow : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        // IMPORTANT: We no longer change bodyType / gravity / constraints here.
-        // Set those in the Inspector as you prefer.
     }
 
     private void Start()
     {
-        // Prefer the global locator (works even if player spawned after enemies)
         if (playerTarget == null && PlayerLocator.Current != null)
             BindTarget(PlayerLocator.Current);
 
-        // Fallback: find by tag once
         if (playerTarget == null)
         {
             var p = GameObject.FindGameObjectWithTag("Player");
@@ -110,7 +103,6 @@ public class EnemyFollow : MonoBehaviour
 
     private void Update()
     {
-        // If target lost (e.g., respawned), try to reacquire periodically
         if (playerTarget == null)
         {
             _retryFindTimer -= Time.deltaTime;
@@ -150,10 +142,10 @@ public class EnemyFollow : MonoBehaviour
         NormalChaseMove(toPlayer, dist);
     }
 
-    // ================= NORMAL CHASE =================
     private void NormalChaseMove(Vector2 toPlayer, float dist)
     {
-        Vector2 desiredVelocity = (dist > stopDistance) ? toPlayer.normalized * moveSpeed : Vector2.zero;
+        float effectiveSpeed = moveSpeed * slowMultiplier;
+        Vector2 desiredVelocity = (dist > stopDistance) ? toPlayer.normalized * effectiveSpeed : Vector2.zero;
 
         chaseCurrentVelocity = Vector2.SmoothDamp(
             chaseCurrentVelocity,
@@ -168,11 +160,10 @@ public class EnemyFollow : MonoBehaviour
         if (chaseCurrentVelocity.sqrMagnitude > 0.001f)
         {
             float angle = Mathf.Atan2(chaseCurrentVelocity.y, chaseCurrentVelocity.x) * Mathf.Rad2Deg;
-            rb.rotation = angle; // sprite faces right by default
+            rb.rotation = angle;
         }
     }
 
-    // ================= SIDESTEP =================
     private bool ShouldStartSidestep(Vector2 toPlayer, float dist)
     {
         if (dist > sidestepTriggerDistance) return false;
@@ -196,6 +187,7 @@ public class EnemyFollow : MonoBehaviour
 
         float targetSpeed = playerRB ? playerRB.linearVelocity.magnitude * sidestepSpeedMultiplier : moveSpeed;
         targetSpeed = Mathf.Clamp(targetSpeed, moveSpeed, sidestepMaxSpeed);
+        targetSpeed *= slowMultiplier;
 
         sidestepTargetVelocity = sidestepDirection * targetSpeed;
         sidestepCurrentVelocity = Vector2.zero;
@@ -224,7 +216,16 @@ public class EnemyFollow : MonoBehaviour
         }
     }
 
-    // ================= TARGET BINDING =================
+    public void ApplySlow(float slowPercent)
+    {
+        slowMultiplier = 1f - slowPercent;
+    }
+
+    public void RemoveSlow(float slowPercent)
+    {
+        slowMultiplier = 1f;
+    }
+
     private void HandlePlayerChanged(Transform t)
     {
         BindTarget(t);
@@ -247,25 +248,21 @@ public class EnemyFollow : MonoBehaviour
         }
     }
 
-    // ================= COLLISION DAMAGE (when physically touching player) =================
     private void OnCollisionStay2D(Collision2D collision)
     {
         if (playerHealth == null) return;
 
-        // Only react to the player root object
         if (!collision.collider.CompareTag("Player") &&
             !(collision.rigidbody && collision.rigidbody.gameObject.CompareTag("Player")))
             return;
 
-        // measure sustained contact time
         _contactTimer += Time.deltaTime;
         if (_contactTimer < Mathf.Max(0f, minimumContactTime)) return;
 
-        // optional "stuck" feeling: need low relative speed
         if (requireLowRelativeSpeed)
         {
             float relSpeed = 0f;
-            Vector2 selfVel = chaseCurrentVelocity; // our kinematic intent
+            Vector2 selfVel = chaseCurrentVelocity;
             if (playerRB != null)
                 relSpeed = (playerRB.linearVelocity - selfVel).magnitude;
             else
@@ -286,12 +283,10 @@ public class EnemyFollow : MonoBehaviour
         _contactTimer = 0f;
     }
 
-    // ================= STOP-AREA DAMAGE (when touching player's stop ring trigger) =================
     private void OnTriggerStay2D(Collider2D other)
     {
         if (!damageOnStopArea || playerHealth == null) return;
 
-        // Must belong to the current player's stop frame
         if (useTagForStopArea)
         {
             if (!other.CompareTag(stopAreaTag)) return;
@@ -301,13 +296,9 @@ public class EnemyFollow : MonoBehaviour
             if (((1 << other.gameObject.layer) & stopAreaLayers.value) == 0) return;
         }
 
-        // Also ensure this stop area belongs to our current player (avoid edge cases)
-        // Check the root of the trigger we hit
         Transform root = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform.root;
         if (playerTarget == null || (root != playerTarget && root != playerTarget.root)) return;
 
-        // For stop-area triggers we do not require "stuck" speed or min time;
-        // but we still respect tickInterval to rate-limit.
         TryTickDamage();
     }
 
@@ -324,10 +315,9 @@ public class EnemyFollow : MonoBehaviour
             if (((1 << other.gameObject.layer) & stopAreaLayers.value) == 0) return;
         }
 
-        _contactTimer = 0f; // reset just in case (shared timer)
+        _contactTimer = 0f;
     }
 
-    // ================= DAMAGE TICK HELPER =================
     private void TryTickDamage()
     {
         if (Time.time < _nextDamageTime) return;

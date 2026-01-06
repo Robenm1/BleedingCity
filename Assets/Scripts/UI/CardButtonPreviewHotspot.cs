@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using UnityEngine.InputSystem; // New Input System
+using UnityEngine.InputSystem;
 using System.Collections;
 
-[RequireComponent(typeof(Image))] // simple raycast target for hotspot
+[RequireComponent(typeof(Image))]
 public class CardButtonPreviewHotspot : MonoBehaviour,
-    IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
+    IPointerEnterHandler, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
 {
     [Header("Source")]
     [Tooltip("CardButton on the small card root. If empty, will auto-find on start.")]
@@ -22,6 +22,7 @@ public class CardButtonPreviewHotspot : MonoBehaviour,
     [Tooltip("If true, preview follows the pointer while held.")]
     public bool followPointer = false;
 
+    private bool _pointerOver;
     private bool _pointerDown;
     private bool _previewOpen;
     private Coroutine _holdRoutine;
@@ -33,34 +34,41 @@ public class CardButtonPreviewHotspot : MonoBehaviour,
         if (!sourceIcon)
             sourceIcon = AutoFindIconOnSource(sourceCardButton);
 
-        // Ensure the hotspot has a RaycastTarget image
         var img = GetComponent<Image>();
         if (img) img.raycastTarget = true;
+    }
+
+    void OnDisable()
+    {
+        ClosePreview();
+    }
+
+    void OnDestroy()
+    {
+        ClosePreview();
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        _pointerOver = true;
+
+        if (_holdRoutine == null && !_previewOpen)
+        {
+            _holdRoutine = StartCoroutine(HoldToPreview());
+        }
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
         _pointerDown = true;
-        _holdRoutine = StartCoroutine(HoldToPreview());
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
         _pointerDown = false;
 
-        if (_holdRoutine != null)
-        {
-            StopCoroutine(_holdRoutine);
-            _holdRoutine = null;
-        }
-
-        // If preview is open, close it and CANCEL the click so the card isn’t selected
         if (_previewOpen)
         {
-            _previewOpen = false;
-            if (CardPreviewManager.Instance) CardPreviewManager.Instance.Hide();
-
-            // Cancel the click on release (prevents selection)
             if (eventData != null)
             {
                 eventData.pointerPress = null;
@@ -73,30 +81,41 @@ public class CardButtonPreviewHotspot : MonoBehaviour,
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        // If you want leaving to cancel before it opens
-        if (!_previewOpen)
+        _pointerOver = false;
+        _pointerDown = false;
+        ClosePreview();
+    }
+
+    private void ClosePreview()
+    {
+        if (_holdRoutine != null)
         {
-            _pointerDown = false;
-            if (_holdRoutine != null)
-            {
-                StopCoroutine(_holdRoutine);
-                _holdRoutine = null;
-            }
+            StopCoroutine(_holdRoutine);
+            _holdRoutine = null;
+        }
+
+        if (_previewOpen)
+        {
+            _previewOpen = false;
+            if (CardPreviewManager.Instance) CardPreviewManager.Instance.Hide();
         }
     }
 
     private IEnumerator HoldToPreview()
     {
         float t = 0f;
-        while (_pointerDown && t < holdTime)
+        while (_pointerOver && t < holdTime)
         {
             t += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        if (!_pointerDown) yield break;
+        if (!_pointerOver)
+        {
+            _holdRoutine = null;
+            yield break;
+        }
 
-        // OPEN preview
         var card = sourceCardButton ? sourceCardButton.card : null;
         var sprite = (sourceIcon && sourceIcon.sprite) ? sourceIcon.sprite : (card ? card.icon : null);
 
@@ -107,19 +126,22 @@ public class CardButtonPreviewHotspot : MonoBehaviour,
             _previewOpen = true;
         }
 
-        // While holding, optionally follow pointer
-        while (_pointerDown && _previewOpen && followPointer)
+        while (_pointerOver)
         {
-            if (CardPreviewManager.Instance)
+            if (followPointer && CardPreviewManager.Instance)
+            {
                 CardPreviewManager.Instance.FollowPointer(GetPointerScreenPosition());
+            }
             yield return null;
         }
+
+        ClosePreview();
+        _holdRoutine = null;
     }
 
     private Vector2 GetPointerScreenPosition()
     {
         if (Mouse.current != null) return Mouse.current.position.ReadValue();
-        // Fallback, in case old input still present
         return Input.mousePosition;
     }
 
@@ -129,7 +151,6 @@ public class CardButtonPreviewHotspot : MonoBehaviour,
         var images = cb.GetComponentsInChildren<Image>(true);
         Image best = null;
 
-        // Prefer sensibly-named art images
         foreach (var img in images)
         {
             if (!img) continue;

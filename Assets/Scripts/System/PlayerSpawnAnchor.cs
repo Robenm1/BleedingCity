@@ -22,17 +22,22 @@ public class PlayerSpawnAnchor : MonoBehaviour
             return;
         }
 
+        SelectedContext.Current = data;
+
         var player = Instantiate(data.characterPrefab, transform.position, transform.rotation, playerParent);
         player.name = data.name + " (Player)";
 
-        // Make sure it’s tagged correctly (optional but recommended)
-        // Ensure the tag "Player" exists in Tags & Layers settings.
         player.tag = "Player";
 
-        // >>> IMPORTANT: announce the spawned player
         PlayerLocator.Set(player.transform);
 
-        // If your player has a deck applier with method ReapplyFrom(List<CardData>), this will call it.
+        var identity = player.GetComponent<PlayerIdentity>();
+        if (identity == null)
+        {
+            identity = player.AddComponent<PlayerIdentity>();
+        }
+        identity.characterData = data;
+
         var deckCopy = new List<CardData>(carrier.selectedCards);
         player.SendMessage("ReapplyFrom", deckCopy, SendMessageOptions.DontRequireReceiver);
 

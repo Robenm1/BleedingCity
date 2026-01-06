@@ -3663,6 +3663,7 @@ MonoBehaviour:
   characterButtons:
   - {fileID: 2029284124}
   - {fileID: 11265776}
+  - {fileID: 1168950122}
   enableLockShake: 1
   shakeDuration: 0.6
   shakeAmplitude: 6
@@ -4297,6 +4298,10 @@ PrefabInstance:
     - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -253.66
+      objectReference: {fileID: 0}
+    - target: {fileID: 8456630747298308451, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

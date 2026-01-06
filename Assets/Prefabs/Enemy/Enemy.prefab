@@ -443,7 +443,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 0}
   m_FillRect: {fileID: 2776524734191623894}
   m_HandleRect: {fileID: 0}
@@ -847,7 +847,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7442bcf6e0d2b4e489532963f0bda612, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHP: 50
+  maxHP: 300
   xpCoinPrefab: {fileID: 1002948382768153302, guid: 1320d5c3167a7974b8e36688e7d53171, type: 3}
   coinsToDrop: 1
   dropScatterRadius: 0.3
