@@ -179,6 +179,11 @@ MonoBehaviour:
     m_Bits: 8
   rushVisualTint: {r: 1, g: 0.5, b: 0, a: 1}
   barrageDuration: 5
+  alphaStrikeSlashCount: 5
+  alphaStrikeDamagePerSlash: 30
+  alphaStrikeRange: 15
+  slashInterval: 0.15
+  slashEffectPrefab: {fileID: 2352730972129104217, guid: 3282968fc5f4cd54fb3308064ed88531, type: 3}
   shieldVisual: {fileID: 9094629183820588397}
   enableShieldPulse: 1
   shieldPulseSpeed: 3
@@ -200,9 +205,10 @@ MonoBehaviour:
   loopCount: 0
   healingRequired: 10
   killsRequired: 2
+  damageRequired: 1000
   fireSpiritPrefab: {fileID: 9000795926370918940, guid: b4f905e7cccbbfe4d8ec102f3bed131b, type: 3}
   fireEaglePrefab: {fileID: 7820059156214029710, guid: f7ed1cf62bd8f444fae4a8b633929a29, type: 3}
-  fireDogPrefab: {fileID: 0}
+  fireDogPrefab: {fileID: 3595047284657239993, guid: ae4dc3b88eb96ba4db86621a87634e75, type: 3}
   fireGolemPrefab: {fileID: 0}
   showDebug: 1
 --- !u!114 &-3917791599823754831
@@ -226,6 +232,10 @@ MonoBehaviour:
   slashDistance: 1.5
   slashArcAngle: 160
   slashRange: 3
+  showSlashGizmo: 1
+  showDetectionGizmo: 1
+  slashGizmoColor: {r: 1, g: 0.5, b: 0, a: 0.3}
+  detectionGizmoColor: {r: 1, g: 1, b: 0, a: 0.2}
 --- !u!50 &3862180431503610800
 Rigidbody2D:
   serializedVersion: 5
