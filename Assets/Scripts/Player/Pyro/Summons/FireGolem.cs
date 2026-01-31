@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -32,11 +33,41 @@ public class FireGolem : MonoBehaviour
 
     [Header("Layers")]
     public LayerMask enemyLayers;
+    public LayerMask coinLayers;
 
     [Header("Visuals")]
     public SpriteRenderer bodySprite;
     public Color damageFlashColor = Color.red;
     public float damageFlashDuration = 0.1f;
+
+    [Header("HP Bar UI")]
+    public RectTransform hpUIRoot;
+    public Slider hpSlider;
+    public float visibleForSecondsAfterHit = 3f;
+    public Vector3 worldOffset = new Vector3(0f, 1.5f, 0f);
+    public Camera uiCamera;
+    [Range(0.01f, 0.3f)] public float followSmoothTime = 0.1f;
+
+    [Header("Passive Aggro")]
+    public bool drawsPassiveAggro = true;
+    public float passiveAggroRadius = 15f;
+    public float passiveAggroUpdateInterval = 1f;
+
+    [Header("Player Avoidance")]
+    public bool avoidBlockingPlayer = true;
+    public float playerAvoidanceDistance = 3.5f;
+    public float playerAvoidanceCheckInterval = 0.05f;
+    public float avoidanceMoveDistance = 4f;
+    public float avoidanceSpeedMultiplier = 2.5f;
+    [Tooltip("Minimum player speed to trigger avoidance")]
+    public float minPlayerSpeedToAvoid = 0.5f;
+    [Tooltip("How directly the player must be moving towards golem (0-1, higher = more direct)")]
+    [Range(0.3f, 1f)] public float playerMovementDotThreshold = 0.4f;
+
+    [Header("Coin Avoidance")]
+    public bool avoidCoins = true;
+    public float coinAvoidanceRadius = 1.5f;
+    public float coinRepulsionForce = 2f;
 
     [Header("Debug")]
     public bool showDebug = true;
@@ -50,6 +81,22 @@ public class FireGolem : MonoBehaviour
     private Color originalColor;
     private Rigidbody2D rb;
 
+    private float hideTimer = 0f;
+    private Canvas hpCanvas;
+    private RectTransform canvasRect;
+    private bool isWorldSpaceCanvas;
+    private Vector2 _uiVel;
+    private Vector2 _lastAnchoredPos;
+
+    private float passiveAggroTimer = 0f;
+    private float playerAvoidanceTimer = 0f;
+    private bool isAvoidingPlayer = false;
+    private Vector2 avoidanceTargetPos;
+    private float avoidanceDuration = 0f;
+
+    private Vector2 lastOwnerPosition;
+    private Vector2 ownerVelocity;
+
     private void Awake()
     {
         currentHP = maxHP;
@@ -58,13 +105,38 @@ public class FireGolem : MonoBehaviour
         if (!rb)
         {
             rb = gameObject.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 0f;
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
+
+        rb.gravityScale = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        rb.bodyType = RigidbodyType2D.Kinematic;
 
         if (bodySprite)
         {
             originalColor = bodySprite.color;
+        }
+
+        if (hpUIRoot != null)
+        {
+            hpCanvas = hpUIRoot.GetComponentInParent<Canvas>();
+            if (hpCanvas != null)
+            {
+                canvasRect = hpCanvas.GetComponent<RectTransform>();
+                isWorldSpaceCanvas = (hpCanvas.renderMode == RenderMode.WorldSpace);
+            }
+        }
+
+        if (uiCamera == null) uiCamera = Camera.main;
+
+        InitHPUI();
+        HideHPUIImmediate();
+    }
+
+    private void Start()
+    {
+        if (owner)
+        {
+            lastOwnerPosition = owner.position;
         }
     }
 
@@ -76,14 +148,118 @@ public class FireGolem : MonoBehaviour
             return;
         }
 
+        UpdateOwnerVelocity();
+
         if (attackTimer > 0f)
         {
             attackTimer -= Time.deltaTime;
         }
 
+        CheckPlayerAvoidance();
+
         if (!isAttacking)
         {
-            FindAndMoveToTarget();
+            if (isAvoidingPlayer)
+            {
+                PerformAvoidanceMovement();
+            }
+            else
+            {
+                FindAndMoveToTarget();
+            }
+        }
+
+        UpdateHPBarVisibility();
+        UpdatePassiveAggro();
+    }
+
+    private void LateUpdate()
+    {
+        UpdateHPBarPosition();
+    }
+
+    private void UpdateOwnerVelocity()
+    {
+        if (!owner) return;
+
+        Vector2 currentOwnerPos = owner.position;
+        ownerVelocity = (currentOwnerPos - lastOwnerPosition) / Time.deltaTime;
+        lastOwnerPosition = currentOwnerPos;
+    }
+
+    private void CheckPlayerAvoidance()
+    {
+        if (!avoidBlockingPlayer || isAttacking || !owner) return;
+
+        playerAvoidanceTimer -= Time.deltaTime;
+        if (playerAvoidanceTimer > 0f) return;
+
+        playerAvoidanceTimer = playerAvoidanceCheckInterval;
+
+        float distToPlayer = Vector2.Distance(transform.position, owner.position);
+
+        if (distToPlayer > playerAvoidanceDistance)
+        {
+            if (isAvoidingPlayer && distToPlayer > playerAvoidanceDistance * 1.5f)
+            {
+                isAvoidingPlayer = false;
+                if (showDebug) Debug.Log("[FireGolem] Player moved away - resuming normal behavior");
+            }
+            return;
+        }
+
+        float playerSpeed = ownerVelocity.magnitude;
+
+        if (playerSpeed < minPlayerSpeedToAvoid)
+        {
+            return;
+        }
+
+        Vector2 playerMovementDir = ownerVelocity.normalized;
+        Vector2 playerToGolem = ((Vector2)transform.position - (Vector2)owner.position).normalized;
+
+        float movementDot = Vector2.Dot(playerMovementDir, playerToGolem);
+
+        if (movementDot > playerMovementDotThreshold)
+        {
+            Vector2 perpendicular = new Vector2(-playerToGolem.y, playerToGolem.x);
+
+            if (Vector2.Dot(playerMovementDir, perpendicular) < 0f)
+            {
+                perpendicular = -perpendicular;
+            }
+
+            Vector2 awayPos = (Vector2)transform.position + perpendicular.normalized * avoidanceMoveDistance;
+
+            if (!isAvoidingPlayer || Vector2.Distance(transform.position, avoidanceTargetPos) < 0.5f)
+            {
+                isAvoidingPlayer = true;
+                avoidanceTargetPos = awayPos;
+                avoidanceDuration = 0.8f;
+
+                if (showDebug) Debug.Log($"[FireGolem] Player approaching (speed: {playerSpeed:F1}, dot: {movementDot:F2}) - moving aside!");
+            }
+        }
+    }
+
+    private void PerformAvoidanceMovement()
+    {
+        float distToAvoidTarget = Vector2.Distance(transform.position, avoidanceTargetPos);
+
+        if (distToAvoidTarget < 0.2f)
+        {
+            rb.linearVelocity = Vector2.zero;
+            avoidanceDuration -= Time.deltaTime;
+            if (avoidanceDuration <= 0f)
+            {
+                isAvoidingPlayer = false;
+                if (showDebug) Debug.Log("[FireGolem] Avoidance complete");
+            }
+        }
+        else
+        {
+            Vector2 direction = (avoidanceTargetPos - (Vector2)transform.position).normalized;
+            rb.linearVelocity = direction * moveSpeed * avoidanceSpeedMultiplier;
         }
     }
 
@@ -130,8 +306,7 @@ public class FireGolem : MonoBehaviour
             }
             else
             {
-                Vector2 direction = (closest.position - transform.position).normalized;
-                rb.linearVelocity = direction * moveSpeed;
+                MoveTowardsTarget(closest.position);
             }
         }
     }
@@ -143,12 +318,68 @@ public class FireGolem : MonoBehaviour
         float distToOwner = Vector2.Distance(transform.position, owner.position);
         if (distToOwner > 3f)
         {
-            Vector2 direction = (owner.position - transform.position).normalized;
-            rb.linearVelocity = direction * moveSpeed;
+            MoveTowardsTarget(owner.position);
         }
         else
         {
             rb.linearVelocity = Vector2.zero;
+        }
+    }
+
+    private void MoveTowardsTarget(Vector3 targetPos)
+    {
+        Vector2 direction = ((Vector2)targetPos - (Vector2)transform.position).normalized;
+        Vector2 desiredVelocity = direction * moveSpeed;
+
+        if (avoidCoins && coinLayers != 0)
+        {
+            Collider2D[] nearbyCoins = Physics2D.OverlapCircleAll(transform.position, coinAvoidanceRadius, coinLayers);
+            if (nearbyCoins.Length > 0)
+            {
+                Vector2 repulsion = Vector2.zero;
+                foreach (var coin in nearbyCoins)
+                {
+                    if (!coin) continue;
+                    Vector2 awayFromCoin = (Vector2)transform.position - (Vector2)coin.transform.position;
+                    float dist = awayFromCoin.magnitude;
+                    if (dist > 0.01f)
+                    {
+                        repulsion += awayFromCoin.normalized * (coinRepulsionForce / dist);
+                    }
+                }
+                desiredVelocity += repulsion;
+            }
+        }
+
+        rb.linearVelocity = desiredVelocity;
+    }
+
+    private void UpdatePassiveAggro()
+    {
+        if (!drawsPassiveAggro) return;
+
+        passiveAggroTimer -= Time.deltaTime;
+        if (passiveAggroTimer > 0f) return;
+
+        passiveAggroTimer = passiveAggroUpdateInterval;
+
+        Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(transform.position, passiveAggroRadius, enemyLayers);
+
+        foreach (var enemy in nearbyEnemies)
+        {
+            if (!enemy) continue;
+
+            var enemyFollow = enemy.GetComponent<EnemyFollow>();
+            if (enemyFollow && enemyFollow.playerTarget != transform)
+            {
+                float distToGolem = Vector2.Distance(transform.position, enemy.transform.position);
+                float distToPlayer = owner ? Vector2.Distance(owner.position, enemy.transform.position) : float.MaxValue;
+
+                if (distToGolem < distToPlayer * 0.7f)
+                {
+                    enemyFollow.playerTarget = transform;
+                }
+            }
         }
     }
 
@@ -158,6 +389,7 @@ public class FireGolem : MonoBehaviour
         comboStep = 0;
         comboTarget = target;
         rb.linearVelocity = Vector2.zero;
+        isAvoidingPlayer = false;
 
         yield return new WaitForSeconds(0.3f);
 
@@ -319,6 +551,9 @@ public class FireGolem : MonoBehaviour
             StartCoroutine(FlashDamage());
         }
 
+        UpdateHPUI();
+        ShowHPUI();
+
         if (showDebug) Debug.Log($"[FireGolem] Took {damage} damage. HP: {currentHP}/{maxHP}");
 
         if (currentHP <= 0f)
@@ -347,6 +582,7 @@ public class FireGolem : MonoBehaviour
             tracker.OnGolemDied();
         }
 
+        if (hpUIRoot != null) Destroy(hpUIRoot.gameObject);
         Destroy(gameObject);
     }
 
@@ -399,6 +635,90 @@ public class FireGolem : MonoBehaviour
         return maxHP > 0f ? currentHP / maxHP : 0f;
     }
 
+    private void InitHPUI()
+    {
+        if (hpSlider != null)
+        {
+            hpSlider.minValue = 0f;
+            hpSlider.maxValue = 1f;
+            hpSlider.value = 1f;
+            hpSlider.interactable = false;
+        }
+    }
+
+    private void UpdateHPUI()
+    {
+        if (hpSlider != null)
+        {
+            float t = (maxHP > 0f) ? (currentHP / maxHP) : 0f;
+            hpSlider.value = Mathf.Clamp01(t);
+        }
+    }
+
+    private void ShowHPUI()
+    {
+        if (hpUIRoot == null) return;
+
+        if (!hpUIRoot.gameObject.activeSelf)
+            hpUIRoot.gameObject.SetActive(true);
+
+        _lastAnchoredPos = hpUIRoot.anchoredPosition;
+        _uiVel = Vector2.zero;
+
+        hideTimer = visibleForSecondsAfterHit;
+    }
+
+    private void HideHPUIImmediate()
+    {
+        if (hpUIRoot == null) return;
+        if (hpUIRoot.gameObject.activeSelf)
+            hpUIRoot.gameObject.SetActive(false);
+    }
+
+    private void UpdateHPBarVisibility()
+    {
+        if (hpUIRoot != null && hpUIRoot.gameObject.activeSelf)
+        {
+            hideTimer -= Time.deltaTime;
+            if (hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
+            {
+                HideHPUIImmediate();
+            }
+        }
+    }
+
+    private void UpdateHPBarPosition()
+    {
+        if (hpUIRoot == null || hpCanvas == null) return;
+
+        Vector3 worldPos = transform.position + worldOffset;
+
+        if (isWorldSpaceCanvas)
+        {
+            hpUIRoot.position = Vector3.Lerp(
+                hpUIRoot.position,
+                worldPos,
+                1f - Mathf.Exp(-Time.deltaTime / Mathf.Max(0.0001f, followSmoothTime))
+            );
+            hpUIRoot.rotation = Quaternion.identity;
+            return;
+        }
+
+        Camera cam = (hpCanvas.renderMode == RenderMode.ScreenSpaceCamera) ? uiCamera : null;
+
+        Vector2 screenPoint = (cam != null)
+            ? (Vector2)cam.WorldToScreenPoint(worldPos)
+            : (Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(worldPos) : (Vector2)worldPos);
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint, cam, out var localPoint))
+        {
+            Vector2 target = localPoint;
+            Vector2 smoothed = Vector2.SmoothDamp(_lastAnchoredPos, target, ref _uiVel, followSmoothTime);
+            hpUIRoot.anchoredPosition = smoothed;
+            _lastAnchoredPos = smoothed;
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
@@ -407,10 +727,35 @@ public class FireGolem : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, aggroRange);
 
+        if (drawsPassiveAggro)
+        {
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawWireSphere(transform.position, passiveAggroRadius);
+        }
+
+        if (avoidBlockingPlayer && owner)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(transform.position, playerAvoidanceDistance);
+        }
+
+        if (avoidCoins)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, coinAvoidanceRadius);
+        }
+
         if (comboStep == 3)
         {
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, aoeRadius);
+        }
+
+        if (isAvoidingPlayer)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(transform.position, avoidanceTargetPos);
+            Gizmos.DrawWireSphere(avoidanceTargetPos, 0.5f);
         }
     }
 }

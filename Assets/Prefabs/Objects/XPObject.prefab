@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 575432434373152411}
   - component: {fileID: 8996387326214914517}
   - component: {fileID: 6702117477613031803}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: XPObject
   m_TagString: Collectable
   m_Icon: {fileID: 0}
