@@ -31,6 +31,13 @@ public class PyroAbility1 : MonoBehaviour
     public float slashInterval = 0.15f;
     public GameObject slashEffectPrefab;
 
+    [Header("Level 4: Fire Golem - Protective Circle")]
+    public float fireCircleDuration = 5f;
+    public float fireCircleRadius = 5f;
+    public float fireCircleShieldAmount = 100f;
+    public float fireCircleDotDamage = 15f;
+    public GameObject fireCirclePrefab;
+
     [Header("Shield Visual")]
     [Tooltip("Shield sprite GameObject (child of player)")]
     public GameObject shieldVisual;
@@ -158,7 +165,7 @@ public class PyroAbility1 : MonoBehaviour
                 ActivateDogAlphaStrike();
                 break;
             case 4:
-                if (showDebug) Debug.Log("[PyroAbility1] Golem ability - Not implemented yet");
+                ActivateGolemFireCircle();
                 break;
             default:
                 if (showDebug) Debug.Log("[PyroAbility1] No summon active!");
@@ -254,6 +261,26 @@ public class PyroAbility1 : MonoBehaviour
         if (showDebug)
         {
             Debug.Log($"[PyroAbility1] Alpha Strike activated! {alphaStrikeSlashCount} slashes!");
+        }
+    }
+
+    private void ActivateGolemFireCircle()
+    {
+        var golem = summonTracker.GetCurrentSummon()?.GetComponent<FireGolem>();
+        if (golem == null)
+        {
+            if (showDebug) Debug.LogWarning("[PyroAbility1] No Fire Golem found!");
+            return;
+        }
+
+        golem.ActivateFireCircle(fireCircleDuration, fireCircleRadius, fireCircleShieldAmount, fireCircleDotDamage, fireCirclePrefab);
+
+        float cd = baseCooldown * (stats ? stats.GetCooldownMultiplier() : 1f);
+        cooldownTimer = cd;
+
+        if (showDebug)
+        {
+            Debug.Log($"[PyroAbility1] Protective Fire Circle activated! Shield: {fireCircleShieldAmount}, DoT: {fireCircleDotDamage}/s");
         }
     }
 

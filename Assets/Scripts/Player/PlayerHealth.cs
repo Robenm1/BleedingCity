@@ -96,14 +96,18 @@ public class PlayerHealth : MonoBehaviour
         if (rawAmount <= 0f) return 0f;
         if (IsDead() || IsInvulnerable()) return 0f;
 
-        // NEW: Check if Pyro is in Blazing Rush (immune to damage)
         var pyroAbility = GetComponent<PyroAbility1>();
         if (pyroAbility != null && pyroAbility.IsInvulnerable())
         {
-            return 0f; // No damage during Blazing Rush
+            return 0f;
         }
 
-        // Same mitigation as PlayerStats.TakeDamage (but here, so we can do i-frames & events)
+        if (GolemFireCircle.activeCircle != null && GolemFireCircle.activeCircle.IsPlayerInCircle())
+        {
+            rawAmount = GolemFireCircle.activeCircle.AbsorbDamage(rawAmount);
+            if (rawAmount <= 0f) return 0f;
+        }
+
         float afterFlat = Mathf.Max(rawAmount - Mathf.Max(0f, stats.armor), 0f);
         float final = afterFlat * (1f - Mathf.Clamp01(stats.damageReductionPercent));
         if (final <= 0f) return 0f;
@@ -119,6 +123,7 @@ public class PlayerHealth : MonoBehaviour
 
         return final;
     }
+
 
 
     /// <summary>Heal up to max; returns actually healed amount.</summary>

@@ -97,6 +97,8 @@ public class FireGolem : MonoBehaviour
     private Vector2 lastOwnerPosition;
     private Vector2 ownerVelocity;
 
+    private float fireCircleTimer = 0f;
+
     private void Awake()
     {
         currentHP = maxHP;
@@ -153,6 +155,11 @@ public class FireGolem : MonoBehaviour
         if (attackTimer > 0f)
         {
             attackTimer -= Time.deltaTime;
+        }
+
+        if (fireCircleTimer > 0f)
+        {
+            fireCircleTimer -= Time.deltaTime;
         }
 
         CheckPlayerAvoidance();
@@ -541,6 +548,74 @@ public class FireGolem : MonoBehaviour
             slowZone.enemyLayers = enemyLayers;
         }
     }
+
+    public void ActivateFireCircle(float duration, float radius, float shieldAmount, float dotDamage, GameObject circlePrefab)
+    {
+        if (fireCircleTimer > 0f)
+        {
+            if (showDebug) Debug.Log($"[FireGolem] Fire Circle on internal cooldown: {fireCircleTimer:F1}s");
+            return;
+        }
+
+        if (!circlePrefab)
+        {
+            if (showDebug) Debug.LogError("[FireGolem] No Fire Circle prefab provided!");
+            return;
+        }
+
+        GameObject circle = Instantiate(circlePrefab, transform.position, Quaternion.identity);
+
+        var fireCircle = circle.GetComponent<GolemFireCircle>();
+
+        if (fireCircle)
+        {
+            fireCircle.golem = transform;
+            fireCircle.duration = duration;
+            fireCircle.radius = radius;
+            fireCircle.shieldAmount = shieldAmount;
+            fireCircle.dotDamagePerSecond = dotDamage;
+            fireCircle.enemyLayers = enemyLayers;
+
+            if (owner)
+            {
+                var pyroAbility = owner.GetComponent<PyroAbility1>();
+                if (pyroAbility && pyroAbility.shieldVisual)
+                {
+                    fireCircle.playerShieldVisual = pyroAbility.shieldVisual;
+                }
+            }
+
+            if (showDebug) Debug.Log($"[FireGolem] Fire Circle spawned! Shield: {shieldAmount}, DoT: {dotDamage}/s, Radius: {radius}");
+        }
+        else
+        {
+            if (showDebug) Debug.LogError("[FireGolem] GolemFireCircle component not found on prefab!");
+        }
+
+        fireCircleTimer = 1f;
+
+        StartCoroutine(DisableAvoidanceDuringFireCircle(duration));
+    }
+
+    private IEnumerator DisableAvoidanceDuringFireCircle(float duration)
+    {
+        bool wasAvoidingPlayer = avoidBlockingPlayer;
+        avoidBlockingPlayer = false;
+        isAvoidingPlayer = false;
+
+        if (showDebug) Debug.Log("[FireGolem] Player avoidance DISABLED during fire circle - golem can still fight!");
+
+        yield return new WaitForSeconds(duration);
+
+        avoidBlockingPlayer = wasAvoidingPlayer;
+
+        if (showDebug) Debug.Log("[FireGolem] Player avoidance RESTORED");
+    }
+
+
+
+
+
 
     public void TakeDamage(float damage)
     {

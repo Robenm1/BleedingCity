@@ -287,7 +287,7 @@ MonoBehaviour:
     m_Bits: 8
   coinLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   bodySprite: {fileID: 5858704789851032533}
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
   damageFlashDuration: 0.1
@@ -304,6 +304,9 @@ MonoBehaviour:
   playerAvoidanceDistance: 3.84
   playerAvoidanceCheckInterval: 0.2
   avoidanceMoveDistance: 3
+  avoidanceSpeedMultiplier: 2.5
+  minPlayerSpeedToAvoid: 0.5
+  playerMovementDotThreshold: 0.4
   avoidCoins: 1
   coinAvoidanceRadius: 3.84
   coinRepulsionForce: 2
