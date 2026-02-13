@@ -219,6 +219,11 @@ public class FireGolem : MonoBehaviour
 
         if (playerSpeed < minPlayerSpeedToAvoid)
         {
+            if (isAvoidingPlayer)
+            {
+                isAvoidingPlayer = false;
+                if (showDebug) Debug.Log("[FireGolem] Player stopped - resuming normal behavior");
+            }
             return;
         }
 
@@ -227,16 +232,25 @@ public class FireGolem : MonoBehaviour
 
         float movementDot = Vector2.Dot(playerMovementDir, playerToGolem);
 
+        if (showDebug && Time.frameCount % 30 == 0)
+        {
+            Debug.Log($"[FireGolem] Distance: {distToPlayer:F1}, Speed: {playerSpeed:F1}, Dot: {movementDot:F2} (threshold: {playerMovementDotThreshold})");
+        }
+
         if (movementDot > playerMovementDotThreshold)
         {
-            Vector2 perpendicular = new Vector2(-playerToGolem.y, playerToGolem.x);
+            Vector2 awayFromPlayer = playerToGolem;
 
-            if (Vector2.Dot(playerMovementDir, perpendicular) < 0f)
+            Vector2 perpendicularDir = new Vector2(-playerMovementDir.y, playerMovementDir.x);
+
+            float sidePreference = Vector2.Dot(playerToGolem, perpendicularDir);
+            if (sidePreference < 0f)
             {
-                perpendicular = -perpendicular;
+                perpendicularDir = -perpendicularDir;
             }
 
-            Vector2 awayPos = (Vector2)transform.position + perpendicular.normalized * avoidanceMoveDistance;
+            Vector2 escapeDirection = (awayFromPlayer + perpendicularDir).normalized;
+            Vector2 awayPos = (Vector2)transform.position + escapeDirection * avoidanceMoveDistance;
 
             if (!isAvoidingPlayer || Vector2.Distance(transform.position, avoidanceTargetPos) < 0.5f)
             {
@@ -244,10 +258,19 @@ public class FireGolem : MonoBehaviour
                 avoidanceTargetPos = awayPos;
                 avoidanceDuration = 0.8f;
 
-                if (showDebug) Debug.Log($"[FireGolem] Player approaching (speed: {playerSpeed:F1}, dot: {movementDot:F2}) - moving aside!");
+                if (showDebug) Debug.Log($"[FireGolem] Player approaching (speed: {playerSpeed:F1}, dot: {movementDot:F2}) - DODGING!");
+            }
+        }
+        else
+        {
+            if (isAvoidingPlayer && movementDot < 0f)
+            {
+                isAvoidingPlayer = false;
+                if (showDebug) Debug.Log("[FireGolem] Player changed direction - resuming normal behavior");
             }
         }
     }
+
 
     private void PerformAvoidanceMovement()
     {

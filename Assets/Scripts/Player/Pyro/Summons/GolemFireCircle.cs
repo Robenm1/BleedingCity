@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+[RequireComponent(typeof(CircleCollider2D))]
 public class GolemFireCircle : MonoBehaviour
 {
     public static GolemFireCircle activeCircle;
@@ -40,6 +41,7 @@ public class GolemFireCircle : MonoBehaviour
 
     public float currentShield { get; private set; }
 
+    private CircleCollider2D shieldCollider;
     private float timer;
     private float dotTickInterval = 0.5f;
     private Dictionary<Transform, float> enemyDotTimers = new Dictionary<Transform, float>();
@@ -53,6 +55,14 @@ public class GolemFireCircle : MonoBehaviour
 
     private void Awake()
     {
+        shieldCollider = GetComponent<CircleCollider2D>();
+        if (!shieldCollider)
+        {
+            shieldCollider = gameObject.AddComponent<CircleCollider2D>();
+        }
+        shieldCollider.isTrigger = true;
+        shieldCollider.radius = shieldRadius;
+
         if (!player)
         {
             var playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -121,6 +131,11 @@ public class GolemFireCircle : MonoBehaviour
             transform.position = newPos;
         }
 
+        if (shieldCollider && shieldCollider.radius != shieldRadius)
+        {
+            shieldCollider.radius = shieldRadius;
+        }
+
         timer += Time.deltaTime;
 
         if (timer >= duration && !isFadingOut)
@@ -140,7 +155,7 @@ public class GolemFireCircle : MonoBehaviour
             }
 
             ApplyDotToEnemies();
-            UpdatePlayerShield();
+            UpdateShieldVisualPulse();
         }
     }
 
@@ -151,43 +166,49 @@ public class GolemFireCircle : MonoBehaviour
         transform.localScale = originalScale * pulseValue;
     }
 
-    private void UpdatePlayerShield()
+    private void UpdateShieldVisualPulse()
     {
-        if (!player || !playerShieldVisual) return;
+        if (!playerShieldVisual || !playerShieldVisual.activeSelf) return;
 
-        bool isPlayerInside = IsPlayerInCircle();
+        shieldPulseTimer += Time.deltaTime * 3f;
+        float pulseValue = Mathf.Lerp(0.95f, 1.05f, (Mathf.Sin(shieldPulseTimer) + 1f) * 0.5f);
+        playerShieldVisual.transform.localScale = shieldOriginalScale * pulseValue;
+    }
 
-        if (showDebug && Time.frameCount % 30 == 0)
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        if (!playerHasShield && !isFadingOut)
         {
-            float dist = Vector2.Distance(new Vector2(transform.position.x, transform.position.y),
-                                         new Vector2(player.position.x, player.position.y));
-            Debug.Log($"[GolemFireCircle] Distance: {dist:F2}, Shield Radius: {shieldRadius}, Inside: {isPlayerInside}, Circle: {transform.position}, Player: {player.position}");
-        }
+            currentShield = shieldAmount;
+            playerHasShield = true;
 
-        if (isPlayerInside)
-        {
-            if (!playerHasShield)
+            if (playerShieldVisual)
             {
-                currentShield = shieldAmount;
-                playerHasShield = true;
                 playerShieldVisual.SetActive(true);
-                if (showDebug) Debug.Log($"[GolemFireCircle] Player GAINED shield: {shieldAmount}");
             }
 
-            shieldPulseTimer += Time.deltaTime * 3f;
-            float pulseValue = Mathf.Lerp(0.95f, 1.05f, (Mathf.Sin(shieldPulseTimer) + 1f) * 0.5f);
-            playerShieldVisual.transform.localScale = shieldOriginalScale * pulseValue;
+            if (showDebug) Debug.Log($"[GolemFireCircle] Player ENTERED shield area - shield granted: {shieldAmount}");
         }
-        else
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        if (playerHasShield)
         {
-            if (playerHasShield)
+            currentShield = 0f;
+            playerHasShield = false;
+
+            if (playerShieldVisual)
             {
-                currentShield = 0f;
-                playerHasShield = false;
                 playerShieldVisual.SetActive(false);
                 playerShieldVisual.transform.localScale = shieldOriginalScale;
-                if (showDebug) Debug.Log("[GolemFireCircle] Player LEFT shield area - shield removed");
             }
+
+            if (showDebug) Debug.Log("[GolemFireCircle] Player EXITED shield area - shield removed");
         }
     }
 
@@ -284,14 +305,6 @@ public class GolemFireCircle : MonoBehaviour
         }
     }
 
-    public bool IsPlayerInCircle()
-    {
-        if (!player) return false;
-        float distance = Vector2.Distance(new Vector2(transform.position.x, transform.position.y),
-                                         new Vector2(player.position.x, player.position.y));
-        return distance <= shieldRadius;
-    }
-
     public float AbsorbDamage(float incomingDamage)
     {
         if (!playerHasShield || currentShield <= 0f) return incomingDamage;
@@ -358,18 +371,9 @@ public class GolemFireCircle : MonoBehaviour
 
         if (Application.isPlaying && player)
         {
-            float distance = Vector2.Distance(new Vector2(center.x, center.y),
-                                            new Vector2(player.position.x, player.position.y));
-            bool inShieldRange = distance <= shieldRadius;
-
-            Gizmos.color = inShieldRange ? Color.green : Color.red;
-            Gizmos.DrawLine(center, player.position);
-
-            Gizmos.color = inShieldRange ? new Color(0f, 1f, 0f, 0.8f) : new Color(1f, 0f, 0f, 0.8f);
+            Gizmos.color = playerHasShield ? new Color(0f, 1f, 0f, 0.8f) : new Color(1f, 0f, 0f, 0.8f);
             Gizmos.DrawSphere(player.position, 0.5f);
-
-            UnityEditor.Handles.Label(player.position + Vector3.up * 2f,
-                $"Distance: {distance:F2}\nRadius: {shieldRadius}\nInside: {inShieldRange}");
+            Gizmos.DrawLine(center, player.position);
         }
     }
 }

@@ -6,10 +6,9 @@ using TMPro;
 [RequireComponent(typeof(PlayerStats))]
 public class PlayerHealth : MonoBehaviour
 {
-    // Events (optional hooks for VFX/SFX/logic)
-    public event Action<float, float> OnHealthChanged; // (current, max)
-    public event Action<float> OnDamaged;              // final damage applied
-    public event Action<float> OnHealed;               // amount healed
+    public event Action<float, float> OnHealthChanged;
+    public event Action<float> OnDamaged;
+    public event Action<float> OnHealed;
     public event Action OnDeath;
 
     [Header("Invulnerability (i-frames)")]
@@ -22,20 +21,18 @@ public class PlayerHealth : MonoBehaviour
     public bool keepPercentFavorUp = true;
 
     [Header("Optional UI")]
-    [SerializeField] private Slider healthSlider;        // min 0, max = maxHealth
-    [SerializeField] private TextMeshProUGUI healthText; // "cur / max"
+    [SerializeField] private Slider healthSlider;
+    [SerializeField] private TextMeshProUGUI healthText;
 
     public enum MaxHpChangeMode
     {
-        KeepPercent, // keep same health percentage when max changes
-        HealByDelta, // add (newMax - oldMax) if positive
-        FillToMax,   // set current = new max
-        ClampOnly    // only clamp down if above new max
+        KeepPercent,
+        HealByDelta,
+        FillToMax,
+        ClampOnly
     }
 
     private PlayerStats stats;
-
-    // For change detection (since we can't modify PlayerStats to add events)
     private float _lastSeenMax;
     private float _lastSeenCur;
 
@@ -52,7 +49,6 @@ public class PlayerHealth : MonoBehaviour
 
     private void OnEnable()
     {
-        // Initialize tracking and UI
         _lastSeenMax = Mathf.Max(1f, stats.maxHealth);
         _lastSeenCur = Mathf.Clamp(stats.currentHealth, 0f, _lastSeenMax);
         stats.maxHealth = _lastSeenMax;
@@ -66,20 +62,18 @@ public class PlayerHealth : MonoBehaviour
     {
         if (invulnTimer > 0f) invulnTimer -= Time.deltaTime;
 
-        // Detect external edits (Inspector/cheats/buffs calling PlayerStats directly)
         float seenMax = Mathf.Max(1f, stats.maxHealth);
         float seenCur = Mathf.Clamp(stats.currentHealth, 0f, seenMax);
 
         if (!Mathf.Approximately(seenMax, _lastSeenMax))
         {
             HandleExternalMaxChange(_lastSeenMax, seenMax);
-            seenMax = stats.maxHealth; // updated inside
+            seenMax = stats.maxHealth;
             seenCur = stats.currentHealth;
         }
 
         if (!Mathf.Approximately(seenCur, _lastSeenCur))
         {
-            // Just clamp & broadcast for current health edits
             stats.currentHealth = Mathf.Clamp(seenCur, 0f, stats.maxHealth);
             Broadcast();
         }
@@ -88,9 +82,6 @@ public class PlayerHealth : MonoBehaviour
         _lastSeenCur = stats.currentHealth;
     }
 
-    // -------- Public API (use these from gameplay/enemies/buffs) --------
-
-    /// <summary>Apply raw damage; returns final damage after mitigation.</summary>
     public float ApplyDamage(float rawAmount)
     {
         if (rawAmount <= 0f) return 0f;
@@ -102,7 +93,7 @@ public class PlayerHealth : MonoBehaviour
             return 0f;
         }
 
-        if (GolemFireCircle.activeCircle != null && GolemFireCircle.activeCircle.IsPlayerInCircle())
+        if (GolemFireCircle.activeCircle != null && GolemFireCircle.activeCircle.currentShield > 0f)
         {
             rawAmount = GolemFireCircle.activeCircle.AbsorbDamage(rawAmount);
             if (rawAmount <= 0f) return 0f;
@@ -124,9 +115,6 @@ public class PlayerHealth : MonoBehaviour
         return final;
     }
 
-
-
-    /// <summary>Heal up to max; returns actually healed amount.</summary>
     public float Heal(float amount)
     {
         if (amount <= 0f || IsDead()) return 0f;
@@ -142,17 +130,12 @@ public class PlayerHealth : MonoBehaviour
         return healed;
     }
 
-    /// <summary>Set current health directly (clamped) and refresh UI/events.</summary>
     public void SetHealth(float value)
     {
         stats.currentHealth = Mathf.Clamp(value, 0f, Mathf.Max(1f, stats.maxHealth));
         Broadcast();
     }
 
-    /// <summary>
-    /// Increase/decrease max HP and adjust current HP according to the selected mode.
-    /// Call this from buffs.
-    /// </summary>
     public void AddMaxHealth(float delta)
     {
         if (Mathf.Approximately(delta, 0f)) return;
@@ -166,8 +149,6 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead() => stats.currentHealth <= 0f;
     public bool IsInvulnerable() => invulnTimer > 0f;
     public float GetHealthNormalized() => stats.maxHealth > 0f ? stats.currentHealth / stats.maxHealth : 0f;
-
-    // -------- Internal helpers --------
 
     private void HandleExternalMaxChange(float oldMax, float newMax)
     {
@@ -219,7 +200,6 @@ public class PlayerHealth : MonoBehaviour
     {
         OnDeath?.Invoke();
         Debug.Log("[PlayerHealth] Player died.");
-        // TODO: disable controls / show death UI etc.
     }
 
     private void SetupUI()
@@ -250,7 +230,6 @@ public class PlayerHealth : MonoBehaviour
 
     private void Broadcast()
     {
-        // Sanity clamp
         stats.maxHealth = Mathf.Max(1f, stats.maxHealth);
         stats.currentHealth = Mathf.Clamp(stats.currentHealth, 0f, stats.maxHealth);
 

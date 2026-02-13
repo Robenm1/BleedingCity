@@ -58,6 +58,12 @@ public class EnemyFollow : MonoBehaviour
     [Tooltip("Layer(s) for the player's stop-area trigger if not using tag.")]
     public LayerMask stopAreaLayers;
 
+    [Header("Stuck Detection")]
+    [Tooltip("Distance threshold to detect if enemy is stuck")]
+    public float stuckDistanceThreshold = 0.05f;
+    [Tooltip("Time before considering enemy stuck")]
+    public float stuckTimeThreshold = 0.5f;
+
     private float _nextDamageTime = 0f;
     private float _contactTimer = 0f;
 
@@ -74,6 +80,9 @@ public class EnemyFollow : MonoBehaviour
 
     private float _retryFindTimer = 0f;
 
+    private Vector2 lastPosition;
+    private float stuckTimer = 0f;
+
     private void OnEnable()
     {
         PlayerLocator.OnPlayerChanged += HandlePlayerChanged;
@@ -87,6 +96,7 @@ public class EnemyFollow : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        lastPosition = rb.position;
     }
 
     private void Start()
@@ -123,6 +133,8 @@ public class EnemyFollow : MonoBehaviour
     {
         if (playerTarget == null) return;
 
+        CheckIfStuck();
+
         Vector2 toPlayer = (Vector2)(playerTarget.position - transform.position);
         float dist = toPlayer.magnitude;
 
@@ -140,6 +152,32 @@ public class EnemyFollow : MonoBehaviour
         }
 
         NormalChaseMove(toPlayer, dist);
+    }
+
+    private void CheckIfStuck()
+    {
+        float distanceMoved = Vector2.Distance(rb.position, lastPosition);
+
+        if (distanceMoved < stuckDistanceThreshold && (chaseCurrentVelocity.sqrMagnitude > 0.01f || sidestepCurrentVelocity.sqrMagnitude > 0.01f))
+        {
+            stuckTimer += Time.fixedDeltaTime;
+
+            if (stuckTimer >= stuckTimeThreshold)
+            {
+                chaseCurrentVelocity = Vector2.zero;
+                sidestepCurrentVelocity = Vector2.zero;
+                chaseVelSmoothRef = Vector2.zero;
+                sidestepVelSmoothRef = Vector2.zero;
+                isSidestepping = false;
+                stuckTimer = 0f;
+            }
+        }
+        else
+        {
+            stuckTimer = 0f;
+        }
+
+        lastPosition = rb.position;
     }
 
     private void NormalChaseMove(Vector2 toPlayer, float dist)
