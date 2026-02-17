@@ -28,20 +28,14 @@ public class XPCoin : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter(Collider other)
     {
-        // Only the player can pick it up
         if (!other.CompareTag("Player"))
             return;
 
         PlayerXP playerXP = other.GetComponent<PlayerXP>();
         if (playerXP != null)
-        {
-            // Add 1 coin to wallet and add xpValue XP to bar
             playerXP.AddCoinPickup(xpValue);
-        }
-
-        // play SFX/VFX later if you want
 
         Destroy(gameObject);
     }

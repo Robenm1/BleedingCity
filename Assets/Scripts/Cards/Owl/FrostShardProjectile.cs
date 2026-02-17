@@ -1,7 +1,6 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Collider2D))]
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Collider))]
 public class FrostShardProjectile : MonoBehaviour
 {
     [Header("Motion")]
@@ -18,39 +17,39 @@ public class FrostShardProjectile : MonoBehaviour
     public float frostDuration = 3f;
     public Sprite frostIcon;
     public Vector2 iconPivot = new(0f, 0.85f);
-    public Vector2 iconSize = new(0.35f, 0.35f);
+    public Vector2 iconSize  = new(0.35f, 0.35f);
 
     [Header("Propagation & Meta")]
     [Range(0f, 1f)] public float propagateFrostOnKillChance = 0f;
-    public float frostVulnerabilityMul = 1f; // carrier for downstream logic
+    public float frostVulnerabilityMul = 1f;
 
-    private Rigidbody2D _rb;
     private float _t;
 
+    /// <summary>Launches the projectile in a XZ-plane direction expressed as a Vector2.</summary>
     public void Launch(Vector2 dir)
     {
         if (dir.sqrMagnitude < 0.0001f) dir = Vector2.right;
         dir.Normalize();
-        transform.right = dir;
+        // Point forward on the XZ plane
+        Vector3 dir3D = new Vector3(dir.x, 0f, dir.y);
+        transform.rotation = Quaternion.LookRotation(dir3D, Vector3.up);
     }
 
     private void Awake()
     {
-        _rb = GetComponent<Rigidbody2D>();
-        _rb.isKinematic = true;
-        var col = GetComponent<Collider2D>();
+        var col = GetComponent<Collider>();
         if (col) col.isTrigger = true;
     }
 
     private void Update()
     {
-        transform.position += transform.right * (speed * Time.deltaTime);
+        transform.position += transform.forward * (speed * Time.deltaTime);
 
         _t += Time.deltaTime;
         if (_t >= lifetime) Destroy(gameObject);
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter(Collider other)
     {
         if (((1 << other.gameObject.layer) & enemyLayers.value) == 0) return;
 

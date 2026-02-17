@@ -1,13 +1,13 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Rigidbody))]
 public class EnemyFollow : MonoBehaviour
 {
     [Header("Target")]
     [Tooltip("The player to chase. If empty, we'll search for tag 'Player'.")]
     public Transform playerTarget;
 
-    private Rigidbody2D playerRB;
+    private Rigidbody playerRB;
     private PlayerHealth playerHealth;
 
     [Header("Chase Settings")]
@@ -69,18 +69,18 @@ public class EnemyFollow : MonoBehaviour
 
     private bool isSidestepping = false;
     private float sidestepTimer = 0f;
-    private Vector2 sidestepDirection;
-    private Vector2 sidestepCurrentVelocity;
-    private Vector2 sidestepVelSmoothRef;
-    private Vector2 sidestepTargetVelocity;
+    private Vector3 sidestepDirection;
+    private Vector3 sidestepCurrentVelocity;
+    private Vector3 sidestepVelSmoothRef;
+    private Vector3 sidestepTargetVelocity;
 
-    private Rigidbody2D rb;
-    private Vector2 chaseCurrentVelocity;
-    private Vector2 chaseVelSmoothRef;
+    private Rigidbody rb;
+    private Vector3 chaseCurrentVelocity;
+    private Vector3 chaseVelSmoothRef;
 
     private float _retryFindTimer = 0f;
 
-    private Vector2 lastPosition;
+    private Vector3 lastPosition;
     private float stuckTimer = 0f;
 
     private void OnEnable()
@@ -95,7 +95,7 @@ public class EnemyFollow : MonoBehaviour
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody>();
         lastPosition = rb.position;
     }
 
@@ -135,8 +135,10 @@ public class EnemyFollow : MonoBehaviour
 
         CheckIfStuck();
 
-        Vector2 toPlayer = (Vector2)(playerTarget.position - transform.position);
-        float dist = toPlayer.magnitude;
+        // Use XZ plane only — ignore Y difference
+        Vector3 toPlayer3D = playerTarget.position - transform.position;
+        Vector3 toPlayerFlat = new Vector3(toPlayer3D.x, 0f, toPlayer3D.z);
+        float dist = toPlayerFlat.magnitude;
 
         if (isSidestepping)
         {
@@ -144,19 +146,19 @@ public class EnemyFollow : MonoBehaviour
             return;
         }
 
-        if (avoidBlockingPlayer && playerRB != null && ShouldStartSidestep(toPlayer, dist))
+        if (avoidBlockingPlayer && playerRB != null && ShouldStartSidestep(toPlayerFlat, dist))
         {
-            BeginSidestep(toPlayer);
+            BeginSidestep(toPlayerFlat);
             SidestepMove();
             return;
         }
 
-        NormalChaseMove(toPlayer, dist);
+        NormalChaseMove(toPlayerFlat, dist);
     }
 
     private void CheckIfStuck()
     {
-        float distanceMoved = Vector2.Distance(rb.position, lastPosition);
+        float distanceMoved = Vector3.Distance(rb.position, lastPosition);
 
         if (distanceMoved < stuckDistanceThreshold && (chaseCurrentVelocity.sqrMagnitude > 0.01f || sidestepCurrentVelocity.sqrMagnitude > 0.01f))
         {
@@ -164,12 +166,12 @@ public class EnemyFollow : MonoBehaviour
 
             if (stuckTimer >= stuckTimeThreshold)
             {
-                chaseCurrentVelocity = Vector2.zero;
-                sidestepCurrentVelocity = Vector2.zero;
-                chaseVelSmoothRef = Vector2.zero;
-                sidestepVelSmoothRef = Vector2.zero;
-                isSidestepping = false;
-                stuckTimer = 0f;
+                chaseCurrentVelocity   = Vector3.zero;
+                sidestepCurrentVelocity = Vector3.zero;
+                chaseVelSmoothRef      = Vector3.zero;
+                sidestepVelSmoothRef   = Vector3.zero;
+                isSidestepping         = false;
+                stuckTimer             = 0f;
             }
         }
         else
@@ -180,56 +182,65 @@ public class EnemyFollow : MonoBehaviour
         lastPosition = rb.position;
     }
 
-    private void NormalChaseMove(Vector2 toPlayer, float dist)
+    private void NormalChaseMove(Vector3 toPlayerFlat, float dist)
     {
         float effectiveSpeed = moveSpeed * slowMultiplier;
-        Vector2 desiredVelocity = (dist > stopDistance) ? toPlayer.normalized * effectiveSpeed : Vector2.zero;
+        Vector3 desiredVelocity = (dist > stopDistance) ? toPlayerFlat.normalized * effectiveSpeed : Vector3.zero;
 
-        chaseCurrentVelocity = Vector2.SmoothDamp(
+        chaseCurrentVelocity = Vector3.SmoothDamp(
             chaseCurrentVelocity,
             desiredVelocity,
             ref chaseVelSmoothRef,
             steeringSmooth
         );
 
-        Vector2 newPos = rb.position + chaseCurrentVelocity * Time.fixedDeltaTime;
+        Vector3 newPos = rb.position + chaseCurrentVelocity * Time.fixedDeltaTime;
+        newPos.y = rb.position.y;
         rb.MovePosition(newPos);
 
+        // Face movement direction (rotate on Y axis only)
         if (chaseCurrentVelocity.sqrMagnitude > 0.001f)
         {
-            float angle = Mathf.Atan2(chaseCurrentVelocity.y, chaseCurrentVelocity.x) * Mathf.Rad2Deg;
-            rb.rotation = angle;
+            Vector3 flatDir = new Vector3(chaseCurrentVelocity.x, 0f, chaseCurrentVelocity.z);
+            if (flatDir.sqrMagnitude > 0.001f)
+                transform.rotation = Quaternion.LookRotation(flatDir, Vector3.up);
         }
     }
 
-    private bool ShouldStartSidestep(Vector2 toPlayer, float dist)
+    private bool ShouldStartSidestep(Vector3 toPlayerFlat, float dist)
     {
         if (dist > sidestepTriggerDistance) return false;
 
-        Vector2 playerVel = playerRB != null ? playerRB.linearVelocity : Vector2.zero;
-        if (playerVel.magnitude < playerApproachSpeedThreshold) return false;
+        Vector3 playerVel3D = playerRB != null ? playerRB.linearVelocity : Vector3.zero;
+        Vector3 playerVelFlat = new Vector3(playerVel3D.x, 0f, playerVel3D.z);
+        if (playerVelFlat.magnitude < playerApproachSpeedThreshold) return false;
 
-        Vector2 fromPlayerToEnemy = ((Vector2)transform.position - (Vector2)playerTarget.position).normalized;
-        float dot = Vector2.Dot(playerVel.normalized, fromPlayerToEnemy);
+        Vector3 fromPlayerToEnemy = (transform.position - playerTarget.position);
+        fromPlayerToEnemy.y = 0f;
+        fromPlayerToEnemy.Normalize();
+        float dot = Vector3.Dot(playerVelFlat.normalized, fromPlayerToEnemy);
         return dot >= approachDotThreshold;
     }
 
-    private void BeginSidestep(Vector2 toPlayer)
+    private void BeginSidestep(Vector3 toPlayerFlat)
     {
         isSidestepping = true;
-        sidestepTimer = sidestepDuration;
+        sidestepTimer  = sidestepDuration;
 
-        Vector2 dir = toPlayer.normalized;
-        Vector2 perpLeft = new Vector2(-dir.y, dir.x).normalized;
+        Vector3 dir = toPlayerFlat.normalized;
+        // Perpendicular on the XZ plane
+        Vector3 perpLeft = new Vector3(-dir.z, 0f, dir.x).normalized;
         sidestepDirection = perpLeft;
 
-        float targetSpeed = playerRB ? playerRB.linearVelocity.magnitude * sidestepSpeedMultiplier : moveSpeed;
+        Vector3 playerVel3D   = playerRB ? playerRB.linearVelocity : Vector3.zero;
+        Vector3 playerVelFlat = new Vector3(playerVel3D.x, 0f, playerVel3D.z);
+        float targetSpeed = playerVelFlat.magnitude * sidestepSpeedMultiplier;
         targetSpeed = Mathf.Clamp(targetSpeed, moveSpeed, sidestepMaxSpeed);
         targetSpeed *= slowMultiplier;
 
-        sidestepTargetVelocity = sidestepDirection * targetSpeed;
-        sidestepCurrentVelocity = Vector2.zero;
-        sidestepVelSmoothRef = Vector2.zero;
+        sidestepTargetVelocity  = sidestepDirection * targetSpeed;
+        sidestepCurrentVelocity = Vector3.zero;
+        sidestepVelSmoothRef    = Vector3.zero;
     }
 
     private void SidestepMove()
@@ -237,20 +248,22 @@ public class EnemyFollow : MonoBehaviour
         sidestepTimer -= Time.fixedDeltaTime;
         if (sidestepTimer <= 0f) isSidestepping = false;
 
-        sidestepCurrentVelocity = Vector2.SmoothDamp(
+        sidestepCurrentVelocity = Vector3.SmoothDamp(
             sidestepCurrentVelocity,
             sidestepTargetVelocity,
             ref sidestepVelSmoothRef,
             sidestepSmooth
         );
 
-        Vector2 newPos = rb.position + sidestepCurrentVelocity * Time.fixedDeltaTime;
+        Vector3 newPos = rb.position + sidestepCurrentVelocity * Time.fixedDeltaTime;
+        newPos.y = rb.position.y;
         rb.MovePosition(newPos);
 
         if (sidestepCurrentVelocity.sqrMagnitude > 0.001f)
         {
-            float angle = Mathf.Atan2(sidestepCurrentVelocity.y, sidestepCurrentVelocity.x) * Mathf.Rad2Deg;
-            rb.rotation = angle;
+            Vector3 flatDir = new Vector3(sidestepCurrentVelocity.x, 0f, sidestepCurrentVelocity.z);
+            if (flatDir.sqrMagnitude > 0.001f)
+                transform.rotation = Quaternion.LookRotation(flatDir, Vector3.up);
         }
     }
 
@@ -272,7 +285,7 @@ public class EnemyFollow : MonoBehaviour
     private void BindTarget(Transform t)
     {
         playerTarget = t;
-        playerRB = playerTarget ? playerTarget.GetComponent<Rigidbody2D>() : null;
+        playerRB     = playerTarget ? playerTarget.GetComponent<Rigidbody>() : null;
         playerHealth = playerTarget ? playerTarget.GetComponent<PlayerHealth>() : null;
 
         if (playerTarget == null)
@@ -280,13 +293,13 @@ public class EnemyFollow : MonoBehaviour
         else
         {
             if (playerRB == null)
-                Debug.LogWarning("[EnemyFollow] Player has no Rigidbody2D. Sidestep logic limited.");
+                Debug.LogWarning("[EnemyFollow] Player has no Rigidbody. Sidestep logic limited.");
             if (playerHealth == null)
                 Debug.LogWarning("[EnemyFollow] Player has no PlayerHealth. Cannot apply damage.");
         }
     }
 
-    private void OnCollisionStay2D(Collision2D collision)
+    private void OnCollisionStay(Collision collision)
     {
         if (playerHealth == null) return;
 
@@ -300,11 +313,17 @@ public class EnemyFollow : MonoBehaviour
         if (requireLowRelativeSpeed)
         {
             float relSpeed = 0f;
-            Vector2 selfVel = chaseCurrentVelocity;
+            Vector3 selfVel3D   = chaseCurrentVelocity;
+            Vector3 selfVelFlat = new Vector3(selfVel3D.x, 0f, selfVel3D.z);
             if (playerRB != null)
-                relSpeed = (playerRB.linearVelocity - selfVel).magnitude;
+            {
+                Vector3 pv = playerRB.linearVelocity;
+                relSpeed = (new Vector3(pv.x, 0f, pv.z) - selfVelFlat).magnitude;
+            }
             else
-                relSpeed = selfVel.magnitude;
+            {
+                relSpeed = selfVelFlat.magnitude;
+            }
 
             if (relSpeed > relativeSpeedThreshold) return;
         }
@@ -312,7 +331,7 @@ public class EnemyFollow : MonoBehaviour
         TryTickDamage();
     }
 
-    private void OnCollisionExit2D(Collision2D collision)
+    private void OnCollisionExit(Collision collision)
     {
         if (!collision.collider.CompareTag("Player") &&
             !(collision.rigidbody && collision.rigidbody.gameObject.CompareTag("Player")))
@@ -321,7 +340,7 @@ public class EnemyFollow : MonoBehaviour
         _contactTimer = 0f;
     }
 
-    private void OnTriggerStay2D(Collider2D other)
+    private void OnTriggerStay(Collider other)
     {
         if (!damageOnStopArea || playerHealth == null) return;
 
@@ -340,7 +359,7 @@ public class EnemyFollow : MonoBehaviour
         TryTickDamage();
     }
 
-    private void OnTriggerExit2D(Collider2D other)
+    private void OnTriggerExit(Collider other)
     {
         if (!damageOnStopArea) return;
 

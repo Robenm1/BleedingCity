@@ -25,7 +25,7 @@ public class MirroredCloneDriver : MonoBehaviour
         _rb = GetComponent<Rigidbody2D>();
         if (_rb)
         {
-            _rb.bodyType = RigidbodyType2D.Kinematic; // clone stays kinematic
+            _rb.bodyType       = RigidbodyType2D.Kinematic;
             _rb.linearVelocity = Vector2.zero;
             _rb.angularVelocity = 0f;
         }
@@ -36,7 +36,6 @@ public class MirroredCloneDriver : MonoBehaviour
         if (moveAction && moveAction.action != null)
             return moveAction.action.ReadValue<Vector2>();
 
-        // Fallback: try read from player's PlayerInput ("Move" action)
         if (player)
         {
             var pi = player.GetComponent<PlayerInput>();
@@ -56,14 +55,13 @@ public class MirroredCloneDriver : MonoBehaviour
         var mv = ReadMove();
         _lastMove = mv;
 
-        // Mirror axes
         if (invertX) mv.x = -mv.x;
         if (invertY) mv.y = -mv.y;
 
-        // Move speed from player stats
         float spd = playerStats.GetMoveSpeed() * Mathf.Max(0f, mirrorSpeedMultiplier);
 
-        Vector3 delta = (Vector3)(mv.normalized * spd * Time.deltaTime);
+        // Map 2D mirrored input onto XZ plane
+        Vector3 delta = new Vector3(mv.normalized.x, 0f, mv.normalized.y) * spd * Time.deltaTime;
         transform.position += delta;
     }
 }

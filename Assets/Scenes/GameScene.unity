@@ -468,7 +468,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &658934472
+--- !u!1001 &670316822
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -498,11 +498,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6849275854092906215, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 6.348509
+      value: 5.1667123
       objectReference: {fileID: 0}
     - target: {fileID: 6849275854092906215, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.41604328
+      value: -1.8116726
       objectReference: {fileID: 0}
     - target: {fileID: 6849275854092906215, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
       propertyPath: m_LocalPosition.z
@@ -539,10 +539,6 @@ PrefabInstance:
     - target: {fileID: 7179348905448836675, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7909194886507170537, guid: ebbad4e4d470b7644904f624f8cd0273, type: 3}
-      propertyPath: m_SortingOrder
-      value: 11
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2940,8 +2936,8 @@ SceneRoots:
   - {fileID: 950377400}
   - {fileID: 1075338389}
   - {fileID: 137230532}
-  - {fileID: 658934472}
   - {fileID: 1158378201}
   - {fileID: 709956472}
   - {fileID: 2005383889}
   - {fileID: 748405661}
+  - {fileID: 670316822}

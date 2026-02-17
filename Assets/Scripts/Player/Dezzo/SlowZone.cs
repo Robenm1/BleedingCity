@@ -88,7 +88,7 @@ public class SlowZone : MonoBehaviour
 
     private void ApplySlowToEnemies()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius, enemyLayers);
+        Collider[] hits = Physics.OverlapSphere(transform.position, radius, enemyLayers);
 
         HashSet<EnemyFollow> currentEnemies = new HashSet<EnemyFollow>();
 
@@ -113,9 +113,7 @@ public class SlowZone : MonoBehaviour
         foreach (var enemy in affectedEnemies)
         {
             if (!currentEnemies.Contains(enemy))
-            {
                 toRemove.Add(enemy);
-            }
         }
 
         foreach (var enemy in toRemove)
