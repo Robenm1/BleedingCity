@@ -1,8 +1,8 @@
-// Assets/Scripts/Player/Dezzo/DezzoShark.cs
+﻿// Assets/Scripts/Player/Dezzo/DezzoShark.cs
 using UnityEngine;
 using System.Reflection;
 
-[RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(Collider2D))]
 public class DezzoShark : MonoBehaviour
 {
     public enum State { Idle, Seek, BiteWindup, Retreat, Cooldown }
@@ -12,7 +12,7 @@ public class DezzoShark : MonoBehaviour
     [Header("Owner wiring")]
     public DezzoSharkManager owner;
     [HideInInspector] public int index = 0;
-    [HideInInspector] public Collider playerCollider;
+    [HideInInspector] public Collider2D playerCollider;
 
     [Header("Bite / Attack")]
     public float biteRange = 0.75f;
@@ -50,8 +50,8 @@ public class DezzoShark : MonoBehaviour
     private State state = State.Idle;
     private float retreatTimer = 0f;
     private float attackCooldown = 0f;
-    private Vector3 velocity;
-    private Collider myCol;
+    private Vector2 velocity;
+    private Collider2D myCol;
     private float currentAngle;
 
     private float BaseOrbitAngleDeg => (Time.time * orbitAngularSpeed) % 360f;
@@ -59,7 +59,7 @@ public class DezzoShark : MonoBehaviour
 
     private void Awake()
     {
-        myCol = GetComponent<Collider>();
+        myCol = GetComponent<Collider2D>();
         if (owner == null) owner = GetComponentInParent<DezzoSharkManager>();
     }
 
@@ -67,8 +67,8 @@ public class DezzoShark : MonoBehaviour
     {
         if (forceTriggerCollider && myCol != null) myCol.isTrigger = true;
         if (playerCollider != null && myCol != null)
-            Physics.IgnoreCollision(myCol, playerCollider, true);
-        currentAngle = transform.eulerAngles.y;
+            Physics2D.IgnoreCollision(myCol, playerCollider, true);
+        currentAngle = transform.eulerAngles.z;
     }
 
     private void Update()
@@ -105,49 +105,45 @@ public class DezzoShark : MonoBehaviour
     {
         if (owner == null) return;
 
-        float detectR  = Mathf.Max(0.1f, owner.GetDetectionRadius());
-        float targetR  = detectR * (1f - Mathf.Clamp01(outerOrbitInsetFraction));
-        float angle    = BaseOrbitAngleDeg + (index * 180f);
+        float detectR = Mathf.Max(0.1f, owner.GetDetectionRadius());
+        float targetR = detectR * (1f - Mathf.Clamp01(outerOrbitInsetFraction));
+
+        float angle = BaseOrbitAngleDeg + (index * 180f);
         if (angle >= 360f) angle -= 360f;
 
         float rad = angle * Mathf.Deg2Rad;
-        // Orbit on XZ plane
-        Vector3 center = owner.transform.position;
-        Vector3 anchor = center + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * targetR;
+        Vector2 center = owner.transform.position;
+        Vector2 anchor = center + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * targetR;
 
-        Vector3 toAnchor = anchor - transform.position;
-        toAnchor.y = 0f;
-        Vector3 desiredVel = toAnchor.sqrMagnitude > 0.0001f
+        Vector2 toAnchor = (anchor - (Vector2)transform.position);
+        Vector2 desiredVel = toAnchor.sqrMagnitude > 0.0001f
             ? toAnchor.normalized * owner.GetSharkMoveSpeed()
-            : Vector3.zero;
+            : Vector2.zero;
 
         desiredVel += SeparationVector() + AvoidPlayerVector();
 
-        velocity = Vector3.Lerp(velocity, desiredVel, 1f - turnSmooth);
-        Vector3 newPos = transform.position + velocity * Time.deltaTime;
-        newPos.y = owner.transform.position.y;
-        transform.position = newPos;
+        velocity = Vector2.Lerp(velocity, desiredVel, 1f - turnSmooth);
+        transform.position += (Vector3)(velocity * Time.deltaTime);
     }
 
     private void TickSeek()
     {
         if (target == null) { state = State.Idle; return; }
 
-        Vector3 toTarget = target.position - transform.position;
-        toTarget.y = 0f;
+        Vector2 toTarget = (Vector2)(target.position - transform.position);
         float speed = owner != null ? owner.GetSharkMoveSpeed() : 12f;
 
+        // Bite-mark frenzy move mul
         var eh = target.GetComponent<EnemyHealth>();
         var bm = eh ? eh.GetComponent<EnemyBiteMark>() : null;
-        if (bm != null && bm.isActive) speed *= Mathf.Max(0.01f, bm.moveMul);
+        if (bm != null && bm.isActive)
+            speed *= Mathf.Max(0.01f, bm.moveMul);
 
-        Vector3 desired = toTarget.normalized * speed;
+        Vector2 desired = toTarget.normalized * speed;
         desired += SeparationVector() + AvoidPlayerVector();
 
-        velocity = Vector3.Lerp(velocity, desired, 1f - turnSmooth);
-        Vector3 newPos = transform.position + velocity * Time.deltaTime;
-        newPos.y = owner.transform.position.y;
-        transform.position = newPos;
+        velocity = Vector2.Lerp(velocity, desired, 1f - turnSmooth);
+        transform.position += (Vector3)(velocity * Time.deltaTime);
 
         if (toTarget.magnitude <= biteRange && attackCooldown <= 0f)
             state = State.BiteWindup;
@@ -191,38 +187,38 @@ public class DezzoShark : MonoBehaviour
     private void BeginRetreat()
     {
         retreatTimer = retreatDuration;
-        state        = State.Retreat;
+        state = State.Retreat;
 
         float cd = owner != null ? owner.GetAttackDelay() : 0.4f;
 
+        // Faster re-bite vs bite-marked target
         if (target != null)
         {
             var eh = target.GetComponent<EnemyHealth>();
             var bm = eh ? eh.GetComponent<EnemyBiteMark>() : null;
-            if (bm != null && bm.isActive) cd *= Mathf.Max(0.01f, bm.attackDelayMul);
+            if (bm != null && bm.isActive)
+                cd *= Mathf.Max(0.01f, bm.attackDelayMul);
         }
 
         attackCooldown = cd;
 
-        Vector3 away;
-        if (target != null)       away = (transform.position - target.position).normalized;
-        else if (owner != null)   away = (transform.position - owner.transform.position).normalized;
-        else                      away = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+        Vector2 away;
+        if (target != null) away = ((Vector2)transform.position - (Vector2)target.position).normalized;
+        else if (owner != null) away = ((Vector2)transform.position - (Vector2)owner.transform.position).normalized;
+        else away = Random.insideUnitCircle.normalized;
 
-        away.y = 0f;
-        Vector3 tangent    = new Vector3(-away.z, 0f, away.x) * 0.7f;
-        Vector3 retreatDir = (away + tangent).normalized;
+        Vector2 tangent = new Vector2(-away.y, away.x) * 0.7f;
+        Vector2 retreatDir = (away + tangent).normalized;
+
         velocity = retreatDir * (owner != null ? owner.GetSharkMoveSpeed() : 12f);
     }
 
     private void TickRetreat()
     {
         retreatTimer -= Time.deltaTime;
-        Vector3 desired = velocity + SeparationVector() + AvoidPlayerVector();
-        Vector3 newPos  = transform.position + desired * Time.deltaTime;
-        if (owner != null) newPos.y = owner.transform.position.y;
-        transform.position = newPos;
-        velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * 2f);
+        Vector2 desired = velocity + SeparationVector() + AvoidPlayerVector();
+        transform.position += (Vector3)(desired * Time.deltaTime);
+        velocity = Vector2.Lerp(velocity, Vector2.zero, Time.deltaTime * 2f);
         if (retreatTimer <= 0f) state = State.Cooldown;
     }
 
@@ -234,19 +230,20 @@ public class DezzoShark : MonoBehaviour
             TickIdle();
     }
 
-    private Vector3 SeparationVector()
+    private Vector2 SeparationVector()
     {
-        if (owner == null || owner.sharks == null) return Vector3.zero;
+        if (owner == null || owner.sharks == null) return Vector2.zero;
 
-        Vector3 repel = Vector3.zero;
+        Vector2 repel = Vector2.zero;
+        Vector2 myPos = transform.position;
 
         for (int i = 0; i < owner.sharks.Length; i++)
         {
             var other = owner.sharks[i];
             if (other == null || other == this) continue;
 
-            Vector3 toMe = transform.position - other.transform.position;
-            toMe.y = 0f;
+            Vector2 oPos = other.transform.position;
+            Vector2 toMe = myPos - oPos;
             float d = toMe.magnitude;
             if (d < 0.0001f) continue;
 
@@ -259,52 +256,48 @@ public class DezzoShark : MonoBehaviour
         return repel;
     }
 
-    private Vector3 AvoidPlayerVector()
+    private Vector2 AvoidPlayerVector()
     {
-        if (owner == null) return Vector3.zero;
-        Vector3 toPlayer = transform.position - owner.transform.position;
-        toPlayer.y = 0f;
+        if (owner == null) return Vector2.zero;
+        Vector2 toPlayer = (Vector2)(transform.position - owner.transform.position);
         float d = toPlayer.magnitude;
         if (d < avoidPlayerRadius && d > 0.0001f)
         {
             float strength = (avoidPlayerRadius - d) / avoidPlayerRadius;
             return toPlayer.normalized * (strength * avoidPlayerStrength);
         }
-        return Vector3.zero;
+        return Vector2.zero;
     }
 
     private void HardLeashClamp()
     {
         if (owner == null) return;
 
-        float detectR    = Mathf.Max(0.1f, owner.GetDetectionRadius());
+        float detectR = Mathf.Max(0.1f, owner.GetDetectionRadius());
         float bufferEdge = detectR * (1f + Mathf.Max(0f, leashBuffer));
-        float hardMax    = detectR;
+        float hardMax = detectR;
 
-        Vector3 center = owner.transform.position;
-        Vector3 pos    = transform.position;
-        Vector3 toMe   = pos - center;
-        toMe.y         = 0f;
-        float d        = toMe.magnitude;
+        Vector2 center = owner.transform.position;
+        Vector2 pos = transform.position;
+        Vector2 toMe = pos - center;
+        float d = toMe.magnitude;
 
         if (d > bufferEdge)
         {
-            float over    = Mathf.Clamp01((d - bufferEdge) / (detectR * 0.5f + 0.001f));
-            Vector3 pull  = (-toMe.normalized) * (leashStrength * over);
-            Vector3 delta = pull * Time.deltaTime;
-            delta.y       = 0f;
-            transform.position += delta;
+            float over = Mathf.Clamp01((d - bufferEdge) / (detectR * 0.5f + 0.001f));
+            Vector2 pull = (-toMe.normalized) * (leashStrength * over);
+            transform.position += (Vector3)(pull * Time.deltaTime);
         }
 
         if (d > hardMax)
         {
-            Vector3 clamped    = center + toMe.normalized * hardMax;
-            clamped.y          = center.y;
+            Vector2 clamped = center + toMe.normalized * hardMax;
             transform.position = clamped;
-
-            Vector3 pullDir = (center - clamped).normalized;
-            float pullSpd   = (owner != null ? owner.GetSharkMoveSpeed() : 12f) * 0.25f;
-            velocity        = Vector3.Lerp(velocity, pullDir * pullSpd, 0.5f);
+            velocity = Vector2.Lerp(
+                velocity,
+                (center - clamped).normalized * (owner != null ? owner.GetSharkMoveSpeed() : 12f) * 0.25f,
+                0.5f
+            );
         }
     }
 
@@ -312,12 +305,17 @@ public class DezzoShark : MonoBehaviour
     {
         if (target == null) return;
 
-        Vector3 toTarget = target.position - transform.position;
-        toTarget.y = 0f;
+        Vector2 toTarget = (Vector2)(target.position - transform.position);
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
-        Quaternion targetRot = Quaternion.LookRotation(toTarget, Vector3.up);
-        transform.rotation   = Quaternion.RotateTowards(transform.rotation, targetRot, maxAngularSpeed * Time.deltaTime);
+        float targetAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
+        float delta = Mathf.DeltaAngle(currentAngle, targetAngle);
+        if (Mathf.Abs(delta) < minAngleDelta) return;
+
+        float maxStep = maxAngularSpeed * Time.deltaTime;
+        delta = Mathf.Clamp(delta, -maxStep, +maxStep);
+        currentAngle += delta;
+        transform.rotation = Quaternion.Euler(0f, 0f, currentAngle);
     }
 
     private static bool TryGetEnemyHP(EnemyHealth eh, out float current, out float max)

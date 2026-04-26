@@ -109,7 +109,7 @@ public class WinterBombEffect : MonoBehaviour
         // Damage + apply Frosted status
         float baseDmg = (_stats != null ? _stats.GetDamage() : 10f) * Mathf.Max(0f, damageMultiplier);
 
-        var hits = Physics.OverlapSphere(center, explosionRadius, enemyLayers);
+        var hits = Physics2D.OverlapCircleAll(center, explosionRadius, enemyLayers);
         for (int i = 0; i < hits.Length; i++)
         {
             var col = hits[i];
@@ -118,6 +118,7 @@ public class WinterBombEffect : MonoBehaviour
             var eh = col.GetComponent<EnemyHealth>();
             if (eh) eh.TakeDamage(baseDmg);
 
+            // Apply Frosted status
             var frost = col.GetComponent<FrostedOnEnemy>();
             if (!frost) frost = col.gameObject.AddComponent<FrostedOnEnemy>();
 
@@ -129,6 +130,7 @@ public class WinterBombEffect : MonoBehaviour
                 size: frostMarkSize
             );
 
+            // Set vulnerability multiplier so frosted enemies take bonus damage
             frost.vulnerabilityMultiplier = frostedDamageMultiplier;
         }
     }

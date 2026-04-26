@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(PlayerStats))]
 public class PlayerMovement : MonoBehaviour
 {
@@ -22,14 +22,14 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("If true, you can dash again while holding a direction at the exact cooldown end; otherwise require re-press via PlayerControls.")]
     [SerializeField] private bool allowInstantRedash = true;
 
-    private Rigidbody rb;
+    private Rigidbody2D rb;
     private PlayerStats stats;
-    private OwlCloneAbility cloneAbility;
+    private OwlCloneAbility cloneAbility; // NEW: reference to clone ability
 
     // input/state
     private Vector2 moveInputRaw;
-    private Vector2 moveInput;
-    private Vector2 lastNonZeroMove;
+    private Vector2 moveInput;          // possibly normalized
+    private Vector2 lastNonZeroMove;    // used for dash direction when not moving
 
     // dash runtime
     private bool isDashing;
@@ -37,8 +37,8 @@ public class PlayerMovement : MonoBehaviour
     private float dashCooldownTimer;
     private Vector2 dashDir;
 
-    private PyroAbility1 pyroAbility;
 
+    private PyroAbility1 pyroAbility;
     // cache per-frame
     private float baseMoveSpeed
     {
@@ -61,16 +61,16 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        pyroAbility  = GetComponent<PyroAbility1>();
-        rb           = GetComponent<Rigidbody>();
-        stats        = GetComponent<PlayerStats>();
-        cloneAbility = GetComponent<OwlCloneAbility>();
+        pyroAbility = GetComponent<PyroAbility1>();
+        rb = GetComponent<Rigidbody2D>();
+        stats = GetComponent<PlayerStats>();
+        cloneAbility = GetComponent<OwlCloneAbility>(); // NEW: find clone ability
 
-        // Isometric 3D: no gravity, locked on Y axis, no physics rotation
-        rb.useGravity     = false;
-        rb.interpolation  = RigidbodyInterpolation.Interpolate;
+        // Recommended Rigidbody2D settings for top-down:
+        rb.gravityScale = 0f;
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.freezeRotation = true;
-        rb.constraints    = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+        // BodyType should be Dynamic in the Inspector (enemies Kinematic if you don't want to push them).
     }
 
     private void Update()
@@ -98,18 +98,15 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isDashing)
         {
-            // Map 2D dash direction onto the XZ plane
-            Vector3 dashVec = new Vector3(dashDir.x, 0f, dashDir.y);
-            Vector3 next    = rb.position + dashVec * dashSpeed * Time.fixedDeltaTime;
-            next.y          = rb.position.y;
+            // Fixed dash movement (ignores regular input)
+            Vector2 next = rb.position + dashDir * dashSpeed * Time.fixedDeltaTime;
             rb.MovePosition(next);
             return;
         }
 
-        // Map 2D input onto XZ plane for isometric movement
-        Vector3 velocity = new Vector3(moveInput.x, 0f, moveInput.y) * baseMoveSpeed;
-        Vector3 target   = rb.position + velocity * Time.fixedDeltaTime;
-        target.y         = rb.position.y;
+        // Regular movement
+        Vector2 velocity = moveInput * baseMoveSpeed;
+        Vector2 target = rb.position + velocity * Time.fixedDeltaTime;
         rb.MovePosition(target);
     }
 

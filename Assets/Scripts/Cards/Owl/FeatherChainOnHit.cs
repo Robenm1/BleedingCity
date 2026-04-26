@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Collider))]
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody2D))]
 public class FeatherChainOnHit : MonoBehaviour
 {
     [Header("Chain Settings")]
     [Tooltip("Maximum total bounces (3 = hits 3 enemies after the first).")]
     public int maxBounces = 3;
 
-    [Tooltip("Damage multiplier relative to PlayerStats.GetDamage().")]
+    [Tooltip("Damage multiplier relative to PlayerStats.GetDamage(). 1 = base damage.")]
     public float damageMultiplier = 1f;
 
     [Header("Motion")]
@@ -21,11 +21,11 @@ public class FeatherChainOnHit : MonoBehaviour
     public float arriveDistance = 0.12f;
 
     [Header("Layers")]
-    [Tooltip("Layer(s) considered enemies.")]
+    [Tooltip("Layer(s) considered enemies. Set to only 'Enemy'.")]
     public LayerMask enemyLayers;
 
-    private Rigidbody _rb;
-    private Collider _col;
+    private Rigidbody2D _rb;
+    private Collider2D _col;
     private FeatherOwnerLink _ownerLink;
 
     private readonly HashSet<EnemyHealth> _alreadyHit = new HashSet<EnemyHealth>();
@@ -40,16 +40,11 @@ public class FeatherChainOnHit : MonoBehaviour
 
     private void Awake()
     {
-        _rb       = GetComponent<Rigidbody>();
-        _col      = GetComponent<Collider>();
+        _rb = GetComponent<Rigidbody2D>();
+        _col = GetComponent<Collider2D>();
         _ownerLink = GetComponent<FeatherOwnerLink>();
 
         if (_col) _col.isTrigger = true;
-        if (_rb)
-        {
-            _rb.useGravity    = false;
-            _rb.isKinematic   = true;
-        }
         _bouncesUsed = 0;
 
         if (enemyLayers.value == 0)
@@ -74,27 +69,32 @@ public class FeatherChainOnHit : MonoBehaviour
 
     private void Update()
     {
-        if (_stuck || _currentTarget == null) return;
+        if (_stuck) return;
 
-        Vector3 to = _currentTarget.position - transform.position;
-        if (to.sqrMagnitude > arriveDistance * arriveDistance)
+        if (_currentTarget != null)
         {
-            // Move toward target on XZ plane, preserve Y
-            Vector3 dir    = to.normalized;
-            Vector3 newPos = transform.position + dir * chainSpeed * Time.deltaTime;
-            newPos.y       = transform.position.y;
-            transform.position = newPos;
+            Vector2 pos = transform.position;
+            Vector2 tgt = _currentTarget.position;
+            Vector2 to = tgt - pos;
+
+            if (to.sqrMagnitude > arriveDistance * arriveDistance)
+            {
+                Vector2 v = to.normalized * chainSpeed;
+                _rb.linearVelocity = v;
+            }
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (_stuck) return;
 
-        if (((1 << other.gameObject.layer) & enemyLayers.value) == 0) return;
+        if (((1 << other.gameObject.layer) & enemyLayers.value) == 0)
+            return;
 
         var eh = other.GetComponent<EnemyHealth>();
-        if (!eh || _alreadyHit.Contains(eh)) return;
+        if (!eh) return;
+        if (_alreadyHit.Contains(eh)) return;
 
         float baseDmg = (_ownerLink && _ownerLink.ownerStats) ? _ownerLink.ownerStats.GetDamage() : 10f;
         eh.TakeDamage(baseDmg * Mathf.Max(0f, damageMultiplier));
@@ -107,6 +107,8 @@ public class FeatherChainOnHit : MonoBehaviour
             {
                 _bouncesUsed++;
                 _currentTarget = next;
+                Vector2 dir = ((Vector2)next.position - (Vector2)transform.position).normalized;
+                _rb.linearVelocity = dir * chainSpeed;
                 return;
             }
         }
@@ -123,13 +125,15 @@ public class FeatherChainOnHit : MonoBehaviour
         foreach (var eh in allEnemies)
         {
             if (!eh || _alreadyHit.Contains(eh)) continue;
-            if (((1 << eh.gameObject.layer) & enemyLayers.value) == 0) continue;
+
+            if (((1 << eh.gameObject.layer) & enemyLayers.value) == 0)
+                continue;
 
             float d2 = (eh.transform.position - transform.position).sqrMagnitude;
             if (d2 < bestDistSqr)
             {
                 bestDistSqr = d2;
-                best        = eh.transform;
+                best = eh.transform;
             }
         }
         return best;
@@ -137,8 +141,13 @@ public class FeatherChainOnHit : MonoBehaviour
 
     private void StickHere()
     {
-        _stuck         = true;
+        _stuck = true;
         _currentTarget = null;
+        if (_rb)
+        {
+            _rb.linearVelocity = Vector2.zero;
+            _rb.angularVelocity = 0f;
+        }
     }
 
     private void OnDrawGizmosSelected()

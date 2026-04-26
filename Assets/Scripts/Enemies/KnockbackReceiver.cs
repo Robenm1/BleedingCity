@@ -9,7 +9,6 @@ public class KnockbackReceiver : MonoBehaviour
 
     private Coroutine kbRoutine;
 
-    /// <summary>Applies a knockback force in a direction on the XZ plane.</summary>
     public void ApplyKnockback(Vector2 dir, float distance, float duration)
     {
         if (kbRoutine != null) StopCoroutine(kbRoutine);
@@ -28,20 +27,16 @@ public class KnockbackReceiver : MonoBehaviour
             reenableFollow = true;
         }
 
-        var rb = GetComponent<Rigidbody>();
-
-        // Map 2D knockback direction onto the XZ plane
-        Vector3 start = transform.position;
-        Vector3 dir3D = new Vector3(dir.x, 0f, dir.y);
-        Vector3 end   = start + dir3D * dist;
-        end.y         = start.y;
+        var rb = GetComponent<Rigidbody2D>();
+        Vector2 start = transform.position;
+        Vector2 end = start + dir * dist;
 
         float t = 0f;
         while (t < dur)
         {
             t += Time.deltaTime;
             float k = Mathf.SmoothStep(0f, 1f, t / dur);
-            Vector3 pos = Vector3.Lerp(start, end, k);
+            Vector2 pos = Vector2.Lerp(start, end, k);
             if (rb != null)
                 rb.MovePosition(pos);
             else

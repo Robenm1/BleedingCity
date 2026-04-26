@@ -49,23 +49,18 @@ public class PlayerAutoShoot : MonoBehaviour
     private void ShootAt(Transform target)
     {
         Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
-
-        // Direction on the XZ plane only
-        Vector3 toTarget = target.position - spawnPos;
-        toTarget.y = 0f;
-        Vector2 dir = new Vector2(toTarget.x, toTarget.z).normalized;
+        Vector2 dir = ((Vector2)target.position - (Vector2)spawnPos).normalized;
 
         GameObject bulletObj = Object.Instantiate(bulletPrefab, spawnPos, Quaternion.identity);
 
-        // Rotate bullet to face direction on XZ plane
-        if (toTarget.sqrMagnitude > 0.0001f)
-            bulletObj.transform.rotation = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
+        float ang = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        bulletObj.transform.rotation = Quaternion.Euler(0f, 0f, ang);
 
         Bullet b = bulletObj.GetComponent<Bullet>();
         if (b != null)
         {
-            float dmg       = stats != null ? stats.GetDamage()          : 10f;
-            float projSpeed = stats != null ? stats.GetProjectileSpeed()  : 12f;
+            float dmg = stats != null ? stats.GetDamage() : 10f;
+            float projSpeed = stats != null ? stats.GetProjectileSpeed() : 12f; // from PlayerStats
             b.Init(dir, dmg, projSpeed);
         }
     }
@@ -74,22 +69,22 @@ public class PlayerAutoShoot : MonoBehaviour
     {
         float range = stats != null ? stats.GetAttackRange() : 6f;
 
-        // Use 3D OverlapSphere on the XZ plane
-        Collider[] hits = Physics.OverlapSphere(transform.position, range, enemyLayers);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, range, enemyLayers);
         if (hits.Length == 0) return null;
 
         float closestDistSqr = Mathf.Infinity;
         Transform closestTarget = null;
+        Vector2 myPos = transform.position;
 
         for (int i = 0; i < hits.Length; i++)
         {
             EnemyHealth eh = hits[i].GetComponent<EnemyHealth>();
             if (eh == null) continue;
 
-            float dSqr = (hits[i].transform.position - transform.position).sqrMagnitude;
+            float dSqr = ((Vector2)hits[i].transform.position - myPos).sqrMagnitude;
             if (dSqr < closestDistSqr)
             {
-                closestDistSqr  = dSqr;
+                closestDistSqr = dSqr;
                 closestTarget = hits[i].transform;
             }
         }

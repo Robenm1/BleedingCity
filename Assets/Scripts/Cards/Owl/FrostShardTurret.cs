@@ -83,24 +83,22 @@ public class FrostShardTurret : MonoBehaviour
 
     private Vector2 PickAimDir()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, range, enemyLayers);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, range, enemyLayers);
         Transform best = null;
         float bestD = float.PositiveInfinity;
         for (int i = 0; i < hits.Length; i++)
         {
             if (!hits[i]) continue;
-            float d = (hits[i].transform.position - transform.position).sqrMagnitude;
+            float d = ((Vector2)hits[i].transform.position - (Vector2)transform.position).sqrMagnitude;
             if (d < bestD)
             {
                 bestD = d;
-                best  = hits[i].transform;
+                best = hits[i].transform;
             }
         }
 
-        if (best == null) return Vector2.right;
-        // Return direction on XZ plane as Vector2
-        Vector3 toTarget = best.position - transform.position;
-        return new Vector2(toTarget.x, toTarget.z).normalized;
+        if (best == null) return Vector2.right; // fallback
+        return ((Vector2)best.position - (Vector2)transform.position).normalized;
     }
 
     private void FireOne(Vector2 dir)

@@ -76,13 +76,13 @@ public class FireDog : MonoBehaviour
 
     private DogState currentState = DogState.Following;
     private Transform currentTarget;
-    private Vector3 velocity;
+    private Vector2 velocity;
     private float biteTimer = 0f;
     private float retreatTimer = 0f;
     private float currentAngle = 0f;
     private SpriteRenderer spriteRenderer;
     private SpriteRenderer dogSpriteRenderer;
-    private Collider dogCollider;
+    private Collider2D dogCollider;
 
     private Vector2 wanderPoint;
     private float wanderTimer = 0f;
@@ -98,10 +98,10 @@ public class FireDog : MonoBehaviour
             if (player) owner = player.transform;
         }
 
-        spriteRenderer    = GetComponentInChildren<SpriteRenderer>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         dogSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        dogCollider       = GetComponent<Collider>();
-        currentAngle      = transform.eulerAngles.y;
+        dogCollider = GetComponent<Collider2D>();
+        currentAngle = transform.eulerAngles.z;
     }
 
     private void OnEnable()
@@ -146,8 +146,8 @@ public class FireDog : MonoBehaviour
         Transform coin = FindClosestCoin();
         if (coin != null)
         {
-            currentTarget  = coin;
-            currentState   = DogState.SeekingCoin;
+            currentTarget = coin;
+            currentState = DogState.SeekingCoin;
             hasWanderPoint = false;
             return;
         }
@@ -155,30 +155,37 @@ public class FireDog : MonoBehaviour
         Transform enemy = FindClosestEnemy();
         if (enemy != null)
         {
-            currentTarget  = enemy;
-            currentState   = DogState.SeekingEnemy;
+            currentTarget = enemy;
+            currentState = DogState.SeekingEnemy;
             hasWanderPoint = false;
             return;
         }
 
         if (wanderTimer <= 0f || !hasWanderPoint)
+        {
             PickNewWanderPoint();
+        }
 
-        // wanderPoint is XZ, convert back to world
-        Vector3 wanderWorld = new Vector3(wanderPoint.x, transform.position.y, wanderPoint.y);
-        Vector3 toWander    = wanderWorld - transform.position;
+        Vector2 toWander = wanderPoint - (Vector2)transform.position;
         float distanceToWander = toWander.magnitude;
 
         if (distanceToWander > 0.3f)
         {
             currentTarget = null;
-            Vector3 desired = toWander.normalized * (moveSpeed * wanderSpeedMultiplier);
-            velocity = Vector3.Lerp(velocity, desired, 1f - turnSmooth);
-            transform.position += velocity * Time.deltaTime;
+            Vector2 desired = toWander.normalized * (moveSpeed * wanderSpeedMultiplier);
+            velocity = Vector2.Lerp(velocity, desired, 1f - turnSmooth);
+            transform.position += (Vector3)(velocity * Time.deltaTime);
 
-            Vector3 flatDir = new Vector3(velocity.x, 0f, velocity.z);
-            if (flatDir.sqrMagnitude > 0.01f)
-                transform.rotation = Quaternion.LookRotation(flatDir, Vector3.up);
+            Vector2 lookDir = toWander.normalized;
+            if (lookDir.sqrMagnitude > 0.01f)
+            {
+                float targetAngle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg;
+                float delta = Mathf.DeltaAngle(currentAngle, targetAngle);
+                float maxStep = maxAngularSpeed * Time.deltaTime * 0.5f;
+                delta = Mathf.Clamp(delta, -maxStep, maxStep);
+                currentAngle += delta;
+                transform.rotation = Quaternion.Euler(0f, 0f, currentAngle);
+            }
         }
         else
         {
@@ -190,12 +197,11 @@ public class FireDog : MonoBehaviour
     {
         if (!owner) return;
 
-        Vector2 randomDir2D = Random.insideUnitCircle.normalized;
-        float randomDist    = Random.Range(wanderMinDistance, wanderRadius);
-        // Wander on XZ plane
-        wanderPoint = (Vector2)new Vector2(owner.position.x, owner.position.z) + randomDir2D * randomDist;
+        Vector2 randomDir = Random.insideUnitCircle.normalized;
+        float randomDist = Random.Range(wanderMinDistance, wanderRadius);
+        wanderPoint = (Vector2)owner.position + randomDir * randomDist;
 
-        wanderTimer    = wanderInterval;
+        wanderTimer = wanderInterval;
         hasWanderPoint = true;
     }
 
@@ -207,14 +213,14 @@ public class FireDog : MonoBehaviour
             return;
         }
 
-        Vector3 toTarget = currentTarget.position - transform.position;
-        float distance   = toTarget.magnitude;
+        Vector2 toTarget = (Vector2)(currentTarget.position - transform.position);
+        float distance = toTarget.magnitude;
 
         if (distance <= coinCollectRange)
         {
             CollectCoin(currentTarget.gameObject);
             currentTarget = null;
-            currentState  = DogState.Following;
+            currentState = DogState.Following;
             return;
         }
 
@@ -222,18 +228,18 @@ public class FireDog : MonoBehaviour
         if (newCoin != null && newCoin != currentTarget)
         {
             currentTarget = newCoin;
-            toTarget      = currentTarget.position - transform.position;
+            toTarget = (Vector2)(currentTarget.position - transform.position);
         }
         else if (newCoin == null)
         {
             currentTarget = null;
-            currentState  = DogState.Following;
+            currentState = DogState.Following;
             return;
         }
 
-        Vector3 desired = toTarget.normalized * moveSpeed;
-        velocity = Vector3.Lerp(velocity, desired, 1f - turnSmooth);
-        transform.position += velocity * Time.deltaTime;
+        Vector2 desired = toTarget.normalized * moveSpeed;
+        velocity = Vector2.Lerp(velocity, desired, 1f - turnSmooth);
+        transform.position += (Vector3)(velocity * Time.deltaTime);
     }
 
     private void TickSeekingEnemy()
@@ -242,7 +248,7 @@ public class FireDog : MonoBehaviour
         if (coin != null)
         {
             currentTarget = coin;
-            currentState  = DogState.SeekingCoin;
+            currentState = DogState.SeekingCoin;
             return;
         }
 
@@ -252,8 +258,8 @@ public class FireDog : MonoBehaviour
             return;
         }
 
-        Vector3 toTarget = currentTarget.position - transform.position;
-        float distance   = toTarget.magnitude;
+        Vector2 toTarget = (Vector2)(currentTarget.position - transform.position);
+        float distance = toTarget.magnitude;
 
         if (distance <= biteRange && biteTimer <= 0f)
         {
@@ -261,9 +267,9 @@ public class FireDog : MonoBehaviour
             return;
         }
 
-        Vector3 desired = toTarget.normalized * moveSpeed;
-        velocity = Vector3.Lerp(velocity, desired, 1f - turnSmooth);
-        transform.position += velocity * Time.deltaTime;
+        Vector2 desired = toTarget.normalized * moveSpeed;
+        velocity = Vector2.Lerp(velocity, desired, 1f - turnSmooth);
+        transform.position += (Vector3)(velocity * Time.deltaTime);
     }
 
     private void TickBiting()
@@ -289,32 +295,39 @@ public class FireDog : MonoBehaviour
     private void BeginRetreat()
     {
         retreatTimer = retreatDuration;
-        biteTimer    = biteCooldown;
+        biteTimer = biteCooldown;
         currentState = DogState.Retreating;
 
-        Vector3 away;
+        Vector2 away;
         if (currentTarget != null)
-            away = (transform.position - currentTarget.position).normalized;
+        {
+            away = ((Vector2)transform.position - (Vector2)currentTarget.position).normalized;
+        }
         else if (owner != null)
-            away = (transform.position - owner.position).normalized;
+        {
+            away = ((Vector2)transform.position - (Vector2)owner.position).normalized;
+        }
         else
-            away = new Vector3(Random.insideUnitCircle.x, 0f, Random.insideUnitCircle.y).normalized;
+        {
+            away = Random.insideUnitCircle.normalized;
+        }
 
-        away.y = 0f;
-        Vector3 tangent    = new Vector3(-away.z, 0f, away.x) * 0.7f;
-        Vector3 retreatDir = (away + tangent).normalized;
+        Vector2 tangent = new Vector2(-away.y, away.x) * 0.7f;
+        Vector2 retreatDir = (away + tangent).normalized;
+
         velocity = retreatDir * moveSpeed;
     }
 
     private void TickRetreating()
     {
         retreatTimer -= Time.deltaTime;
-        transform.position += velocity * Time.deltaTime;
-        velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * 2f);
+
+        transform.position += (Vector3)(velocity * Time.deltaTime);
+        velocity = Vector2.Lerp(velocity, Vector2.zero, Time.deltaTime * 2f);
 
         if (retreatTimer <= 0f)
         {
-            currentState  = DogState.Following;
+            currentState = DogState.Following;
             currentTarget = null;
         }
     }
@@ -362,18 +375,18 @@ public class FireDog : MonoBehaviour
 
     private Transform FindClosestEnemy()
     {
-        Collider[] enemies = Physics.OverlapSphere(transform.position, enemyDetectionRange, enemyLayers);
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, enemyDetectionRange, enemyLayers);
 
         Transform closest = null;
         float closestDistance = float.MaxValue;
 
         foreach (var enemy in enemies)
         {
-            float distance = Vector3.Distance(transform.position, enemy.transform.position);
+            float distance = Vector2.Distance(transform.position, enemy.transform.position);
             if (distance < closestDistance)
             {
                 closestDistance = distance;
-                closest         = enemy.transform;
+                closest = enemy.transform;
             }
         }
 
@@ -384,12 +397,18 @@ public class FireDog : MonoBehaviour
     {
         if (currentTarget == null) return;
 
-        Vector3 toTarget = currentTarget.position - transform.position;
-        toTarget.y = 0f;
+        Vector2 toTarget = (Vector2)(currentTarget.position - transform.position);
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
-        Quaternion targetRot = Quaternion.LookRotation(toTarget, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, maxAngularSpeed * Time.deltaTime);
+        float targetAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
+        float delta = Mathf.DeltaAngle(currentAngle, targetAngle);
+
+        if (Mathf.Abs(delta) < minAngleDelta) return;
+
+        float maxStep = maxAngularSpeed * Time.deltaTime;
+        delta = Mathf.Clamp(delta, -maxStep, maxStep);
+        currentAngle += delta;
+        transform.rotation = Quaternion.Euler(0f, 0f, currentAngle);
     }
 
     public void PerformAlphaStrike(int slashCount, float damagePerSlash, float range, float interval, GameObject slashEffectPrefab)
@@ -406,7 +425,7 @@ public class FireDog : MonoBehaviour
         if (dogSpriteRenderer) dogSpriteRenderer.enabled = false;
         if (dogCollider) dogCollider.enabled = false;
 
-        Collider[] enemiesInRange = Physics.OverlapSphere(transform.position, range, enemyLayers);
+        Collider2D[] enemiesInRange = Physics2D.OverlapCircleAll(transform.position, range, enemyLayers);
         List<Transform> allEnemies = new List<Transform>();
 
         foreach (var enemy in enemiesInRange)
