@@ -43,7 +43,7 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("Smooth the UI movement to avoid jitter when the enemy/camera moves.")]
     public bool smoothFollow = true;
 
-    [Tooltip("Time (seconds) to reach the target UI position. 0.08–0.15 is a good range.")]
+    [Tooltip("Time (seconds) to reach the target UI position. 0.08ï¿½0.15 is a good range.")]
     [Range(0.01f, 0.3f)] public float followSmoothTime = 0.1f;
 
     private float hideTimer = 0f;
@@ -133,7 +133,7 @@ public class EnemyHealth : MonoBehaviour
             return;
         }
 
-        // Screen Space – Overlay or Camera: convert to canvas local space
+        // Screen Space ï¿½ Overlay or Camera: convert to canvas local space
         Camera cam = (hpCanvas.renderMode == RenderMode.ScreenSpaceCamera) ? uiCamera : null;
 
         Vector2 screenPoint = (cam != null)
@@ -159,6 +159,20 @@ public class EnemyHealth : MonoBehaviour
     }
 
     // ===== Public damage API =====
+
+    /// <summary>
+    /// Same as TakeDamage but applies the Hell's Justice mark multiplier when active.
+    /// Use this for all summon damage calls.
+    /// </summary>
+    public void TakeSummonDamage(float dmg)
+    {
+        var mark = GetComponent<HellsJusticeMark>();
+        if (mark != null)
+            dmg *= mark.GetDamageMultiplier();
+
+        TakeDamage(dmg);
+    }
+
     public void TakeDamage(float dmg)
     {
         if (dmg <= 0f || currentHP <= 0f) return;

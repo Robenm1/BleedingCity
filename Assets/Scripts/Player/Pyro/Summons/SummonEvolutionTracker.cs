@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class SummonEvolutionTracker : MonoBehaviour
 {
@@ -19,9 +19,28 @@ public class SummonEvolutionTracker : MonoBehaviour
     private float totalDistance = 0f;
     private Vector3 lastPosition;
 
-    [Header("Level 4: Fire Golem → ???")]
-    [Tooltip("The Golem doesn't auto-evolve. It loops back to Spirit when killed.")]
+    // Base thresholds stored once so hard-mode scaling doesn't compound.
+    private float baseHealingRequired;
+    private int baseKillsRequired;
+    private float baseDistanceRequired;
+
+    [Header("Level 4: Fire Golem → Dragon")]
+    [Tooltip("The Golem doesn't auto-evolve. It triggers the dragon, then loops back to Spirit when killed.")]
     public bool golemLoopsOnDeath = true;
+
+    [Header("Dragon")]
+    [Tooltip("Dragon prefab spawned when the Golem dies.")]
+    public GameObject fireDragonPrefab;
+
+    [Header("Hard Mode Evolution Multipliers (applied after loop 1)")]
+    [Tooltip("Multiplier applied to healingRequired after the first loop.")]
+    public float hardHealingMultiplier = 2f;
+
+    [Tooltip("Multiplier applied to killsRequired after the first loop.")]
+    public float hardKillsMultiplier = 1.5f;
+
+    [Tooltip("Multiplier applied to distanceRequired after the first loop.")]
+    public float hardDistanceMultiplier = 1.5f;
 
     [Header("Summon Prefabs")]
     public GameObject fireSpiritPrefab;
@@ -36,6 +55,11 @@ public class SummonEvolutionTracker : MonoBehaviour
 
     private void Start()
     {
+        // Cache base thresholds before any hard-mode scaling is applied.
+        baseHealingRequired = healingRequired;
+        baseKillsRequired = killsRequired;
+        baseDistanceRequired = distanceRequired;
+
         lastPosition = transform.position;
         SpawnFireSpirit();
     }
@@ -216,10 +240,62 @@ public class SummonEvolutionTracker : MonoBehaviour
 
     public void OnGolemDied()
     {
-        if (showDebug) Debug.Log($"[SummonEvolution] Golem destroyed! Looping back to Fire Spirit...");
+        if (showDebug) Debug.Log($"[SummonEvolution] Golem destroyed! Summoning the Dragon...");
 
         loopCount++;
+        SpawnDragon();
+    }
+
+    private void SpawnDragon()
+    {
+        currentLevel = 5;
+        currentSummon = null;
+
+        if (fireDragonPrefab != null)
+        {
+            // Dragon placement is handled internally by FireDragon.SetupFlightPath().
+            Instantiate(fireDragonPrefab, Vector3.zero, Quaternion.identity);
+
+            if (showDebug) Debug.Log("[SummonEvolution] Fire Dragon spawned! Waiting for it to finish...");
+
+            // Return to Fire Spirit after the dragon's flight is done.
+            // We read the flight duration directly from the prefab component.
+            var dragonConfig = fireDragonPrefab.GetComponent<FireDragon>();
+            float delay = dragonConfig != null ? dragonConfig.flightDuration : 4f;
+
+            Invoke(nameof(ReturnToFireSpirit), delay);
+        }
+        else
+        {
+            if (showDebug) Debug.LogWarning("[SummonEvolution] No fireDragonPrefab assigned! Skipping dragon and returning to Spirit.");
+            ReturnToFireSpirit();
+        }
+    }
+
+    private void ReturnToFireSpirit()
+    {
+        ApplyHardModeMultipliers();
         SpawnFireSpirit();
+    }
+
+    /// <summary>
+    /// After the first full loop, increase all evolution thresholds to make each
+    /// subsequent loop harder to complete. Scales from the original base values so
+    /// the multiplier never compounds across loops.
+    /// </summary>
+    private void ApplyHardModeMultipliers()
+    {
+        if (loopCount <= 1) return;
+
+        healingRequired = Mathf.Round(baseHealingRequired * hardHealingMultiplier);
+        killsRequired = Mathf.RoundToInt(baseKillsRequired * hardKillsMultiplier);
+        distanceRequired = Mathf.Round(baseDistanceRequired * hardDistanceMultiplier);
+
+        if (showDebug)
+        {
+            Debug.Log($"[SummonEvolution] Hard mode applied! " +
+                      $"Heal: {healingRequired}, Kills: {killsRequired}, Distance: {distanceRequired}");
+        }
     }
 
     public float GetEvolutionProgress()
@@ -233,6 +309,8 @@ public class SummonEvolutionTracker : MonoBehaviour
             case 3:
                 return Mathf.Clamp01(totalDistance / distanceRequired);
             case 4:
+                return 1f;
+            case 5:
                 return 1f;
             default:
                 return 0f;
@@ -251,6 +329,8 @@ public class SummonEvolutionTracker : MonoBehaviour
                 return $"Walk {totalDistance:F0}/{distanceRequired} units";
             case 4:
                 return $"Fire Golem (Loop {loopCount})";
+            case 5:
+                return "Fire Dragon!";
             default:
                 return "No summon";
         }

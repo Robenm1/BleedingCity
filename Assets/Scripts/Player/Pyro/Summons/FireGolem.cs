@@ -477,7 +477,7 @@ public class FireGolem : MonoBehaviour
         var enemyHealth = comboTarget.GetComponent<EnemyHealth>();
         if (enemyHealth)
         {
-            enemyHealth.TakeDamage(hit1Damage);
+            enemyHealth.TakeSummonDamage(hit1Damage);
         }
 
         ApplyKnockback(comboTarget, hit1KnockbackForce, knockbackStunDuration);
@@ -494,7 +494,7 @@ public class FireGolem : MonoBehaviour
         var enemyHealth = comboTarget.GetComponent<EnemyHealth>();
         if (enemyHealth)
         {
-            enemyHealth.TakeDamage(hit2Damage);
+            enemyHealth.TakeSummonDamage(hit2Damage);
         }
 
         ApplyKnockback(comboTarget, hit2KnockbackForce, knockbackStunDuration);
@@ -514,7 +514,7 @@ public class FireGolem : MonoBehaviour
             var enemyHealth = hit.GetComponent<EnemyHealth>();
             if (enemyHealth)
             {
-                enemyHealth.TakeDamage(hit3Damage);
+                enemyHealth.TakeSummonDamage(hit3Damage);
             }
 
             ApplyKnockback(hit.transform, hit3KnockbackForce, knockbackStunDuration);

@@ -284,7 +284,7 @@ public class FireDog : MonoBehaviour
         if (enemyHealth != null)
         {
             float damage = biteDamage;
-            enemyHealth.TakeDamage(damage);
+            enemyHealth.TakeSummonDamage(damage);
 
             if (showDebug) Debug.Log($"[FireDog] Bit {currentTarget.name} for {damage} damage!");
         }
@@ -470,7 +470,7 @@ public class FireDog : MonoBehaviour
                 var enemyHealth = target.GetComponent<EnemyHealth>();
                 if (enemyHealth != null)
                 {
-                    enemyHealth.TakeDamage(damagePerSlash);
+                    enemyHealth.TakeSummonDamage(damagePerSlash);
 
                     if (showDebug) Debug.Log($"[FireDog] Alpha Strike slash {i + 1}/{slashCount} hit {target.name}!");
                 }

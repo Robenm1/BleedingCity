@@ -65,6 +65,8 @@ GameObject:
   - component: {fileID: 2441784738184583823}
   - component: {fileID: 5758882080159495574}
   - component: {fileID: 1911876108009863408}
+  - component: {fileID: 2409485162786766219}
+  - component: {fileID: 337340572582825778}
   m_Layer: 0
   m_Name: Pyro
   m_TagString: Player
@@ -212,6 +214,10 @@ MonoBehaviour:
   killsRequired: 2
   distanceRequired: 20
   golemLoopsOnDeath: 0
+  fireDragonPrefab: {fileID: 2580554846225425575, guid: 934b30ac7726bb1419fd994277af9a1d, type: 3}
+  hardHealingMultiplier: 2
+  hardKillsMultiplier: 1.5
+  hardDistanceMultiplier: 1.5
   fireSpiritPrefab: {fileID: 9000795926370918940, guid: b4f905e7cccbbfe4d8ec102f3bed131b, type: 3}
   fireEaglePrefab: {fileID: 7820059156214029710, guid: f7ed1cf62bd8f444fae4a8b633929a29, type: 3}
   fireDogPrefab: {fileID: 3595047284657239993, guid: ae4dc3b88eb96ba4db86621a87634e75, type: 3}
@@ -505,6 +511,34 @@ MonoBehaviour:
   sliderTextRect: {fileID: 3477242968154442853}
   onFillColor: {r: 0, g: 0, b: 0, a: 1}
   offFillColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &2409485162786766219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0db280bb2cc5024c8247d7f2e0dd54d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FireDragonDebugSpawner
+  fireDragonPrefab: {fileID: 2580554846225425575, guid: 934b30ac7726bb1419fd994277af9a1d, type: 3}
+--- !u!114 &337340572582825778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b0e140ad73bdc744a0e2641e9fb4c5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PyroAbility2
+  hellBombPrefab: {fileID: 2337603317889783104, guid: ecee5fcf54b945d4daf303ca18cd1fb9, type: 3}
+  baseCooldown: 6
+  showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
   m_ObjectHideFlags: 0

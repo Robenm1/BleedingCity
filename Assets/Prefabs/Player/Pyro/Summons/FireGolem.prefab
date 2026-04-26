@@ -266,7 +266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireGolem
   owner: {fileID: 0}
-  maxHP: 500
+  maxHP: 10
   moveSpeed: 4
   aggroRange: 30
   attackRange: 2.63

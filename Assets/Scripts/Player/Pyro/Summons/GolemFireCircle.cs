@@ -283,7 +283,7 @@ public class GolemFireCircle : MonoBehaviour
                 if (enemyHealth)
                 {
                     float damage = dotDamagePerSecond * dotTickInterval;
-                    enemyHealth.TakeDamage(damage);
+                    enemyHealth.TakeSummonDamage(damage);
 
                     if (showDebug) Debug.Log($"[GolemFireCircle] DoT tick: {damage} to {enemy.name}");
                 }

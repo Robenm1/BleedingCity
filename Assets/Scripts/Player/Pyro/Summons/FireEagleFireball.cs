@@ -82,7 +82,7 @@ public class FireEagleFireball : MonoBehaviour
         var enemyHealth = collision.GetComponent<EnemyHealth>();
         if (enemyHealth != null)
         {
-            enemyHealth.TakeDamage(damage);
+            enemyHealth.TakeSummonDamage(damage);
             hasHit = true;
             Destroy(gameObject);
         }
@@ -93,7 +93,7 @@ public class FireEagleFireball : MonoBehaviour
         var enemyHealth = obj.GetComponent<EnemyHealth>();
         if (enemyHealth != null)
         {
-            enemyHealth.TakeDamage(damage);
+            enemyHealth.TakeSummonDamage(damage);
         }
     }
 }
