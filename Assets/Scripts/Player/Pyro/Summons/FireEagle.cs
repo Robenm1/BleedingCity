@@ -250,13 +250,7 @@ public class FireEagle : MonoBehaviour
 
         GameObject fireball = Instantiate(fireballPrefab, spawnPosition, Quaternion.identity);
 
-        Vector2 direction = (target.position - spawnPosition).normalized;
-
-        var rb = fireball.GetComponent<Rigidbody2D>();
-        if (rb)
-        {
-            rb.linearVelocity = direction * fireballSpeed;
-        }
+        Vector2 direction = ((Vector2)target.position - (Vector2)spawnPosition).normalized;
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         fireball.transform.rotation = Quaternion.Euler(0f, 0f, angle);
@@ -266,6 +260,7 @@ public class FireEagle : MonoBehaviour
         {
             projectile.damage = fireballDamage;
             projectile.enemyLayers = enemyLayers;
+            projectile.Launch(direction, fireballSpeed);
         }
     }
 
