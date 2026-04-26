@@ -2,10 +2,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
+using System;
 
 [RequireComponent(typeof(PlayerStats))]
 public class StatsPanelController : MonoBehaviour
 {
+    /// <summary>Fired whenever the stats panel opens or closes. True = open, false = closed.</summary>
+    public static event Action<bool> OnPanelToggled;
     [Header("Wiring")]
     public GameObject panelRoot;
     public InputActionReference statsMenuAction;
@@ -109,6 +112,8 @@ public class StatsPanelController : MonoBehaviour
         UpdateStatsUI();
         UpdateBuffPagerUI();
         UpdateSliderTextColor();
+
+        OnPanelToggled?.Invoke(true);
     }
 
     public void ClosePanel()
@@ -118,6 +123,8 @@ public class StatsPanelController : MonoBehaviour
 
         if (panelRoot) panelRoot.SetActive(false);
         Time.timeScale = cachedPrevTimeScale <= 0f ? 1f : cachedPrevTimeScale;
+
+        OnPanelToggled?.Invoke(false);
     }
 
     // -------- Stats / HP Binding --------

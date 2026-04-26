@@ -41,6 +41,16 @@ public class HellsJusticeMark : MonoBehaviour
         ResolveReferences();
     }
 
+    private void OnEnable()
+    {
+        StatsPanelController.OnPanelToggled += OnStatsPanelToggled;
+    }
+
+    private void OnDisable()
+    {
+        StatsPanelController.OnPanelToggled -= OnStatsPanelToggled;
+    }
+
     private void OnDestroy()
     {
         DestroyIcon();
@@ -98,6 +108,12 @@ public class HellsJusticeMark : MonoBehaviour
     public float GetDamageMultiplier() => _isActive ? summonDamageMultiplier : 1f;
 
     // ── Internals ──────────────────────────────────────────────────────────
+
+    private void OnStatsPanelToggled(bool isOpen)
+    {
+        if (_iconRT != null)
+            _iconRT.gameObject.SetActive(!isOpen && _isActive);
+    }
 
     private void ResolveReferences()
     {
