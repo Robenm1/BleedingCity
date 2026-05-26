@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -12,8 +12,13 @@ public class CardButton : MonoBehaviour
 
     [Header("Wiring")]
     public Image iconImage;
+    public Image nameBG;
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI typeTag;
+
+    [Header("Pin")]
+    [Tooltip("Sprite displayed on top of the card when it is added to the deck.")]
+    public Sprite pinSprite;
 
     [Header("Runtime")]
     public CharacterSelectUIManager manager;
@@ -21,12 +26,13 @@ public class CardButton : MonoBehaviour
     [HideInInspector] public CardButton sourcePoolButton; // set on deck items to re-enable pool button
 
     private Button _btn;
+    private Image _pinImage;
 
     private void Awake()
     {
         _btn = GetComponent<Button>();
         _btn.onClick.AddListener(OnClicked);
-        ApplyTMPOneLine(nameText);
+        ApplyTMPNameStyle(nameText);
         Refresh();
     }
 
@@ -39,6 +45,8 @@ public class CardButton : MonoBehaviour
         sourcePoolButton = null;
         Refresh();
         SetPicked(false);
+        ShowPin(false);
+        SetNameBG(true);
     }
 
     // -------- Bind for DECK ----------
@@ -49,8 +57,60 @@ public class CardButton : MonoBehaviour
         context = Context.Deck;
         sourcePoolButton = poolButton;
         Refresh();
-        // deck items are always interactable (click to remove)
         SetPicked(false);
+        ShowPin(true);
+        SetNameBG(false);
+    }
+
+    /// <summary>Shows or hides the dark name background strip.</summary>
+    private void SetNameBG(bool visible)
+    {
+        if (!nameBG) return;
+        var c = nameBG.color;
+        c.a = visible ? 0.65f : 0f;
+        nameBG.color = c;
+    }
+
+    // -------- Pin overlay ----------
+    private void ShowPin(bool show)
+    {
+        if (!pinSprite) return;
+
+        if (show)
+        {
+            if (!_pinImage)
+            {
+                var pinGO = new GameObject("Pin", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                pinGO.transform.SetParent(transform, false);
+
+                var rt = pinGO.GetComponent<RectTransform>();
+                // Anchor to top-center, pivot at top-center
+                rt.anchorMin = new Vector2(0.5f, 1f);
+                rt.anchorMax = new Vector2(0.5f, 1f);
+                rt.pivot     = new Vector2(0.5f, 1f);
+
+                // Size roughly 70% of card width; nudge upward so it overlaps the top edge
+                float pinSize = 160f;
+                rt.sizeDelta        = new Vector2(pinSize, pinSize);
+                rt.anchoredPosition = new Vector2(20f, pinSize * 0.4f);
+
+                _pinImage        = pinGO.GetComponent<Image>();
+                _pinImage.sprite = pinSprite;
+                _pinImage.preserveAspect = true;
+                _pinImage.raycastTarget  = false;
+
+                // Render above everything else in this card
+                pinGO.transform.SetAsLastSibling();
+            }
+            else
+            {
+                _pinImage.gameObject.SetActive(true);
+            }
+        }
+        else
+        {
+            if (_pinImage) _pinImage.gameObject.SetActive(false);
+        }
     }
 
     public void Refresh()
@@ -121,7 +181,7 @@ public class CardButton : MonoBehaviour
     private void OnValidate()
     {
         if (iconImage && card) iconImage.sprite = card.icon;
-        if (nameText) ApplyTMPOneLine(nameText);
+        if (nameText) ApplyTMPNameStyle(nameText);
         if (typeTag)
         {
             if (card) { typeTag.text = card.isActive ? "ACTIVE" : "PASSIVE"; typeTag.gameObject.SetActive(true); }
@@ -131,12 +191,15 @@ public class CardButton : MonoBehaviour
     }
 #endif
 
-    private static void ApplyTMPOneLine(TextMeshProUGUI t)
+    private static void ApplyTMPNameStyle(TextMeshProUGUI t)
     {
         if (!t) return;
-        t.enableWordWrapping = false;
-        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.enableWordWrapping = true;
+        t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true;
+        t.fontSizeMin = 8;
+        t.fontSizeMax = 18;
         t.richText = false;
-        t.alignment = TextAlignmentOptions.Midline;
+        t.alignment = TextAlignmentOptions.Center;
     }
 }

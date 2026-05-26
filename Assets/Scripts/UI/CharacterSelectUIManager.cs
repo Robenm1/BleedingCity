@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -10,6 +10,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     public Image selectedIconImage;
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI descriptionText;
+    public PaperCutNameDisplay paperCutName;
 
     [Header("Pool Panels in #6 (fixed panels)")]
     public RectTransform[] topRowSlots;     // character specials (row 1)
@@ -79,6 +80,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
             selectedIconImage.enabled = false; // hide until a character is chosen
         }
         if (nameText) nameText.text = string.Empty;
+        if (paperCutName) paperCutName.SetName(string.Empty);
         if (descriptionText) descriptionText.text = string.Empty;
 
         ShowAllSlots(topRowSlots, true);
@@ -123,6 +125,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
             }
         }
         if (nameText) nameText.text = data ? data.displayName : string.Empty;
+        if (paperCutName) paperCutName.SetName(data ? data.displayName : string.Empty);
         if (descriptionText) descriptionText.text = data ? data.description : string.Empty;
 
         // Rebuild pool only when selection truly changes
