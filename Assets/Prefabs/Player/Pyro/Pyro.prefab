@@ -210,14 +210,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SummonEvolutionTracker
   currentLevel: 0
   loopCount: 0
-  healingRequired: 10
-  killsRequired: 2
-  distanceRequired: 20
-  golemLoopsOnDeath: 0
+  healingRequired: 60
+  killsRequired: 10
+  distanceRequired: 120
+  golemLoopsOnDeath: 1
   fireDragonPrefab: {fileID: 2580554846225425575, guid: 934b30ac7726bb1419fd994277af9a1d, type: 3}
   hardHealingMultiplier: 2
-  hardKillsMultiplier: 1.5
-  hardDistanceMultiplier: 1.5
+  hardKillsMultiplier: 2
+  hardDistanceMultiplier: 2
   fireSpiritPrefab: {fileID: 9000795926370918940, guid: b4f905e7cccbbfe4d8ec102f3bed131b, type: 3}
   fireEaglePrefab: {fileID: 7820059156214029710, guid: f7ed1cf62bd8f444fae4a8b633929a29, type: 3}
   fireDogPrefab: {fileID: 3595047284657239993, guid: ae4dc3b88eb96ba4db86621a87634e75, type: 3}
