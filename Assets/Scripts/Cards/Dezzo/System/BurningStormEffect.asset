@@ -16,5 +16,5 @@ MonoBehaviour:
   tickInterval: 0.25
   requireSameOwner: 0
   ability1ComponentName: SandRepulseAbility
-  cooldownMemberName: baseCooldown
+  cooldownMemberName: cooldown
   cooldownMultiplier: 1.25

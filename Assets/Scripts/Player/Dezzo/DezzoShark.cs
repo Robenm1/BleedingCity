@@ -1,4 +1,4 @@
-﻿// Assets/Scripts/Player/Dezzo/DezzoShark.cs
+// Assets/Scripts/Player/Dezzo/DezzoShark.cs
 using UnityEngine;
 using System.Reflection;
 
@@ -46,6 +46,18 @@ public class DezzoShark : MonoBehaviour
     public float maxAngularSpeed = 220f;
     public float minAngleDelta = 2f;
 
+    [Header("Animation")]
+    [Tooltip("Animator on this GameObject (auto-found if null).")]
+    public Animator sharkAnimator;
+    [Tooltip("SpriteRenderer on this GameObject (auto-found if null).")]
+    public SpriteRenderer spriteRenderer;
+    [Tooltip("Degrees from horizontal at which the sideways animation gives way to the turning animation.")]
+    [Range(1f, 89f)] public float sidewaysMaxAngle = 35f;
+    [Tooltip("Degrees from horizontal at which the turning animation gives way to the up/down animation.")]
+    [Range(1f, 89f)] public float upDownMinAngle = 55f;
+
+    private static readonly int DirectionParam = Animator.StringToHash("Direction");
+
     private Transform target;
     private State state = State.Idle;
     private float retreatTimer = 0f;
@@ -61,6 +73,8 @@ public class DezzoShark : MonoBehaviour
     {
         myCol = GetComponent<Collider2D>();
         if (owner == null) owner = GetComponentInParent<DezzoSharkManager>();
+        if (sharkAnimator == null) sharkAnimator = GetComponent<Animator>();
+        if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void Start()
@@ -69,6 +83,8 @@ public class DezzoShark : MonoBehaviour
         if (playerCollider != null && myCol != null)
             Physics2D.IgnoreCollision(myCol, playerCollider, true);
         currentAngle = transform.eulerAngles.z;
+        // Sprites handle direction via selection + flip — no transform rotation needed.
+        transform.localRotation = Quaternion.identity;
     }
 
     private void Update()
@@ -89,6 +105,7 @@ public class DezzoShark : MonoBehaviour
         }
 
         FaceTowardTarget();
+        UpdateAnimation();
         HardLeashClamp();
     }
 
@@ -301,21 +318,77 @@ public class DezzoShark : MonoBehaviour
         }
     }
 
+    private void UpdateAnimation()
+    {
+        if (sharkAnimator == null && spriteRenderer == null) return;
+
+        // Normalize currentAngle to [0, 360).
+        float a = currentAngle % 360f;
+        if (a < 0f) a += 360f;
+
+        // absHoriz: deviation from horizontal axis (0 = horizontal, 90 = vertical).
+        float absHoriz = Mathf.Abs(Mathf.DeltaAngle(a, 0f));
+        if (absHoriz > 90f) absHoriz = 180f - absHoriz;
+
+        int dir;
+        bool flipX;
+        bool flipY;
+
+        if (absHoriz <= sidewaysMaxAngle)
+        {
+            // SharksFacingLeftIdle naturally faces LEFT (180°).
+            // Flip X when pointing into the right half (cos > 0).
+            dir = 0;
+            flipX = Mathf.Cos(a * Mathf.Deg2Rad) > 0f;
+            flipY = false;
+        }
+        else if (absHoriz >= upDownMinAngle)
+        {
+            // SharkIdleFacingDown naturally faces DOWN (270°).
+            // Flip Y when pointing into the upper half (sin > 0).
+            dir = 1;
+            flipX = false;
+            flipY = Mathf.Sin(a * Mathf.Deg2Rad) > 0f;
+        }
+        else
+        {
+            // SharksTurningAngle naturally faces upper-right (≈ 45°).
+            // Flip X for the left half, flip Y for the lower half.
+            dir = 2;
+            flipX = a >= 90f && a <= 270f;
+            flipY = a >= 180f;
+        }
+
+        if (sharkAnimator != null)
+            sharkAnimator.SetInteger(DirectionParam, dir);
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.flipX = flipX;
+            spriteRenderer.flipY = flipY;
+        }
+    }
+
     private void FaceTowardTarget()
     {
-        if (target == null) return;
+        // Use target direction when chasing, fall back to velocity while orbiting.
+        Vector2 dir;
+        if (target != null)
+            dir = (Vector2)(target.position - transform.position);
+        else if (velocity.sqrMagnitude > 0.01f)
+            dir = velocity;
+        else
+            return;
 
-        Vector2 toTarget = (Vector2)(target.position - transform.position);
-        if (toTarget.sqrMagnitude < 0.0001f) return;
+        if (dir.sqrMagnitude < 0.0001f) return;
 
-        float targetAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
+        float targetAngle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         float delta = Mathf.DeltaAngle(currentAngle, targetAngle);
         if (Mathf.Abs(delta) < minAngleDelta) return;
 
         float maxStep = maxAngularSpeed * Time.deltaTime;
         delta = Mathf.Clamp(delta, -maxStep, +maxStep);
         currentAngle += delta;
-        transform.rotation = Quaternion.Euler(0f, 0f, currentAngle);
     }
 
     private static bool TryGetEnemyHP(EnemyHealth eh, out float current, out float max)

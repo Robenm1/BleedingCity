@@ -13,7 +13,7 @@ public class BurningStormEffectSO : CardEffectSO
     public string ability1ComponentName = "SandRepulseAbility";
 
     [Tooltip("Must match the float field/property that stores the base cooldown.")]
-    public string cooldownMemberName = "baseCooldown";
+    public string cooldownMemberName = "cooldown";
 
     [Tooltip("Multiply Ability1's cooldown by this (e.g., 1.25 = +25%).")]
     public float cooldownMultiplier = 1.15f;

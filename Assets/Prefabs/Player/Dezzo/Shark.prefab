@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 8347959843488234528}
   - component: {fileID: 6792659758725514984}
   - component: {fileID: 2427157489824375304}
+  - component: {fileID: 4303108595727690433}
   m_Layer: 0
   m_Name: Shark
   m_TagString: Untagged
@@ -29,9 +30,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 415918046735519063}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.70710766, w: 0.70710593}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.42266667, y: 1.7310011, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 4, y: 4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -82,9 +83,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -1287173967
   m_SortingLayer: 1
-  m_SortingOrder: 10
+  m_SortingOrder: 9
   m_Sprite: {fileID: 7482667652216324306, guid: 75f5f34dc1b5347e0b8351032682f224, type: 3}
-  m_Color: {r: 0.2971698, g: 0.517907, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -174,21 +175,25 @@ MonoBehaviour:
   index: 0
   playerCollider: {fileID: 0}
   biteRange: 0.75
+  damageMultiplier: 1
   retreatDuration: 0.6
   retreatDistance: 2.5
-  damageMultiplier: 1
   turnSmooth: 0.15
   separationRadius: 500
   separationStrength: 3
   avoidPlayerRadius: 0.4
   avoidPlayerStrength: 3
   orbitAngularSpeed: 110
-  idleOrbitTightFactor: 0.3
-  leashStrength: 200
+  outerOrbitInsetFraction: 0.05
   leashBuffer: 0.07
+  leashStrength: 200
   forceTriggerCollider: 1
   maxAngularSpeed: 220
   minAngleDelta: 2
+  sharkAnimator: {fileID: 0}
+  spriteRenderer: {fileID: 0}
+  sidewaysMaxAngle: 35
+  upDownMinAngle: 55
 --- !u!114 &2427157489824375304
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,3 +210,25 @@ MonoBehaviour:
   viewportPadding: 0.05
   softClamp: 1
   softStrength: 15
+--- !u!95 &4303108595727690433
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 415918046735519063}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 525d7fe907d049445a7a9c100d3f7f98, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

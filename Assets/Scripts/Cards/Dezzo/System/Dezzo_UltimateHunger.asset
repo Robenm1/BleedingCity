@@ -21,6 +21,6 @@ MonoBehaviour:
   executeThreshold: 0.1
   biteMarkSprite: {fileID: 21300000, guid: 7f02ca20ed5c8cf4a98a7b64b3567477, type: 3}
   biteMarkTint: {r: 1, g: 0.15, b: 0.15, a: 1}
-  biteMarkOffset: {x: 0, y: 0.1}
+  biteMarkOffset: {x: 0, y: 1.6}
   sortingOrder: 300
-  biteMarkScale: 4
+  biteMarkScale: 2

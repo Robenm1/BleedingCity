@@ -1,57 +1,55 @@
-﻿// Assets/Scripts/Cards/Dezzo/RewindRuntime.cs
+// Assets/Scripts/Cards/Dezzo/RewindRuntime.cs
 using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerStats))]
+[RequireComponent(typeof(PlayerHealth))]
 public class RewindRuntime : MonoBehaviour
 {
-    [Header("Set by SO")]
+    [Header("Revive Config (set by SO)")]
     public float reviveDuration = 2.0f;
-    public float healPercent = 0.5f;
+    [Range(0f, 1f)] public float healPercent = 0.5f;
     public bool freezeSharks = true;
-    public bool lockControls = true;
+
+    [Header("Invulnerability During Revive")]
     public bool invulnerableWhileReviving = true;
     public string invulnerableLayerName = "";
 
-    // cached
+    // cached refs
     private PlayerStats stats;
+    private PlayerHealth playerHealth;
     private DezzoSharkManager sharkMgr;
 
     // state
     private bool usedOnce = false;
     private bool reviving = false;
-
-    // optional: things to disable during revive if present
-    private MonoBehaviour moveController;   // your PlayerMovement script (if any)
-    private MonoBehaviour inputController;  // your PlayerControls/Input relay (if any)
-
-    // layer restore
     private int originalLayer = -1;
 
     private void Awake()
     {
         stats = GetComponent<PlayerStats>();
+        playerHealth = GetComponent<PlayerHealth>();
         sharkMgr = GetComponent<DezzoSharkManager>();
-
-        // Try to auto-find common movement/control scripts (optional)
-        moveController = GetComponent<MonoBehaviour>(); // placeholder; leave null unless you assign explicitly
-        // If you want, expose public fields to assign specific scripts via inspector:
-        // public MonoBehaviour movementToDisable;
-        // public MonoBehaviour controlsToDisable;
     }
 
-    private void Update()
+    private void OnEnable()
+    {
+        if (playerHealth != null)
+            playerHealth.OnDeath += HandleDeath;
+    }
+
+    private void OnDisable()
+    {
+        if (playerHealth != null)
+            playerHealth.OnDeath -= HandleDeath;
+    }
+
+    /// <summary>Subscribed to PlayerHealth.OnDeath — triggers the one-time revive sequence.</summary>
+    private void HandleDeath()
     {
         if (usedOnce || reviving) return;
-        if (stats == null) return;
-
-        // Intercept "death" without changing existing code:
-        // If health hits 0 or below, we consume the revive and run the sequence.
-        if (stats.currentHealth <= 0f)
-        {
-            StartCoroutine(ReviveSequence());
-        }
+        StartCoroutine(ReviveSequence());
     }
 
     private IEnumerator ReviveSequence()
@@ -59,24 +57,10 @@ public class RewindRuntime : MonoBehaviour
         usedOnce = true;
         reviving = true;
 
-        // 1) Freeze sharks (safest way without editing shark scripts: disable their components)
-        if (freezeSharks && sharkMgr != null && sharkMgr.sharks != null)
-        {
-            for (int i = 0; i < sharkMgr.sharks.Length; i++)
-            {
-                if (sharkMgr.sharks[i])
-                    sharkMgr.sharks[i].enabled = false;
-            }
-        }
+        // Freeze sharks so they don't keep attacking while reviving
+        SetSharksEnabled(false);
 
-        // 2) Lock player controls/movement (only if present)
-        if (lockControls)
-        {
-            TrySetEnabled(moveController, false);
-            TrySetEnabled(inputController, false);
-        }
-
-        // 3) Make invulnerable (optional) — simplest: change layer temporarily
+        // Optional: change layer to grant invulnerability
         if (invulnerableWhileReviving && !string.IsNullOrEmpty(invulnerableLayerName))
         {
             originalLayer = gameObject.layer;
@@ -84,49 +68,35 @@ public class RewindRuntime : MonoBehaviour
             if (invLayer >= 0) SetLayerRecursively(gameObject, invLayer);
         }
 
-        // 4) Animate HP bar from 0 → targetHP over reviveDuration
+        // Lerp HP from 0 → targetHP over reviveDuration
         float targetHP = Mathf.Max(1f, stats.maxHealth * healPercent);
-        float startHP = Mathf.Clamp(stats.currentHealth, 0f, stats.maxHealth);
-        // Ensure we show 0 at start for the fill animation
-        stats.currentHealth = 0f;
 
         float t = 0f;
         while (t < reviveDuration)
         {
             t += Time.deltaTime;
             float k = Mathf.Clamp01(t / reviveDuration);
-            stats.currentHealth = Mathf.Lerp(0f, targetHP, k);
+            playerHealth.SetHealth(Mathf.Lerp(0f, targetHP, k));
             yield return null;
         }
-        stats.currentHealth = targetHP;
 
-        // 5) Restore everything
+        playerHealth.SetHealth(targetHP);
+
+        // Restore layer
         if (invulnerableWhileReviving && !string.IsNullOrEmpty(invulnerableLayerName) && originalLayer >= 0)
-        {
             SetLayerRecursively(gameObject, originalLayer);
-        }
 
-        if (lockControls)
-        {
-            TrySetEnabled(moveController, true);
-            TrySetEnabled(inputController, true);
-        }
-
-        if (freezeSharks && sharkMgr != null && sharkMgr.sharks != null)
-        {
-            for (int i = 0; i < sharkMgr.sharks.Length; i++)
-            {
-                if (sharkMgr.sharks[i])
-                    sharkMgr.sharks[i].enabled = true;
-            }
-        }
+        // Unfreeze sharks
+        SetSharksEnabled(true);
 
         reviving = false;
     }
 
-    private void TrySetEnabled(MonoBehaviour mb, bool enabled)
+    private void SetSharksEnabled(bool enabled)
     {
-        if (mb != null) mb.enabled = enabled;
+        if (!freezeSharks || sharkMgr == null || sharkMgr.sharks == null) return;
+        for (int i = 0; i < sharkMgr.sharks.Length; i++)
+            if (sharkMgr.sharks[i] != null) sharkMgr.sharks[i].enabled = enabled;
     }
 
     private void SetLayerRecursively(GameObject go, int layer)

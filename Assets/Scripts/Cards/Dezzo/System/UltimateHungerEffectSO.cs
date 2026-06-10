@@ -1,4 +1,4 @@
-﻿// Assets/Scripts/Cards/Dezzo/UltimateHungerEffectSO.cs
+// Assets/Scripts/Cards/Dezzo/UltimateHungerEffectSO.cs
 using UnityEngine;
 
 [CreateAssetMenu(
@@ -48,7 +48,6 @@ public class UltimateHungerEffectSO : CardEffectSO
 
         runtime.biteMarkSprite = biteMarkSprite;
         runtime.biteMarkTint = biteMarkTint;
-        runtime.biteMarkOffset = biteMarkOffset;
         runtime.sortingOrder = sortingOrder;
 
         runtime.biteMarkScale = Mathf.Max(0.05f, biteMarkScale);

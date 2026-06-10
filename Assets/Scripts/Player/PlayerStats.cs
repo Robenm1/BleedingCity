@@ -70,27 +70,4 @@ public class PlayerStats : MonoBehaviour
     public float GetAttackRange() => attackRange;
     public float GetProjectileSpeed() => projectileSpeed;
 
-    // ===== Health / Damage Handling =====
-    public void TakeDamage(float rawAmount)
-    {
-        float afterFlat = Mathf.Max(rawAmount - armor, 0f);
-        float final = afterFlat * (1f - damageReductionPercent);
-
-        currentHealth -= final;
-        if (currentHealth <= 0f)
-        {
-            currentHealth = 0f;
-            Die();
-        }
-    }
-
-    public void Heal(float amount)
-    {
-        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
-    }
-
-    private void Die()
-    {
-        Debug.Log("[PlayerStats] Player died.");
-    }
 }

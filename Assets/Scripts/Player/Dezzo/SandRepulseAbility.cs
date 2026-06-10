@@ -25,8 +25,12 @@ public class SandRepulseAbility : MonoBehaviour
     public LayerMask enemyLayers;
 
     [Header("Cooldown")]
-    [Tooltip("Base cooldown before cooldownMultiplier.")]
-    public float baseCooldown = 3f;
+    [Tooltip("Seconds the player must wait before casting again. Scaled by PlayerStats.cooldownMultiplier.")]
+    public float cooldown = 5f;
+
+    [Header("Animation")]
+    [Tooltip("Duration of the cast VFX animation in seconds. Set this to match the animation clip length.")]
+    public float vfxDuration = 0.9167f;
 
     [Header("FX (optional)")]
     public GameObject castVfxPrefab;
@@ -35,8 +39,18 @@ public class SandRepulseAbility : MonoBehaviour
     [Tooltip("If ON, shows a brief circle pulse for the push radius.")]
     public bool showCircle = true;
 
+    /// <summary>Remaining cooldown in seconds. Use this to drive a UI fill or icon grey-out.</summary>
+    public float CooldownRemaining => cooldownTimer;
+
+    /// <summary>Normalised cooldown progress from 1 (just cast) to 0 (ready).</summary>
+    public float CooldownFraction => effectiveCooldown > 0f ? cooldownTimer / effectiveCooldown : 0f;
+
+    /// <summary>True while the ability is unavailable.</summary>
+    public bool IsOnCooldown => cooldownTimer > 0f;
+
     private PlayerStats stats;
     private float cooldownTimer = 0f;
+    private float effectiveCooldown = 0f;
 
     private void Awake()
     {
@@ -69,22 +83,26 @@ public class SandRepulseAbility : MonoBehaviour
         Activate();
     }
 
-    /// <summary>Call this from your PlayerControls when Ability1 is pressed if you don't use InputActionReference.</summary>
+    /// <summary>Triggers the Sand Repulse. Called automatically via InputActionReference or manually from PlayerControls.</summary>
     public void Activate()
     {
         if (cooldownTimer > 0f) return;
 
-        // cooldown respects PlayerStats cooldownMultiplier (e.g., 0.8 = faster CDs)
-        float cd = baseCooldown * Mathf.Max(0.05f, stats.GetCooldownMultiplier());
-        cooldownTimer = cd;
+        // Cooldown scales with PlayerStats.cooldownMultiplier (e.g., 0.8 = 20% faster cooldowns).
+        effectiveCooldown = cooldown * Mathf.Max(0.05f, stats.GetCooldownMultiplier());
+        cooldownTimer = effectiveCooldown;
 
         Vector2 center = transform.position;
         Collider2D[] hits = Physics2D.OverlapCircleAll(center, radius, enemyLayers);
 
-        // optional VFX
         if (castVfxPrefab != null)
         {
-            Instantiate(castVfxPrefab, transform.position, Quaternion.identity);
+            var vfxObj = Instantiate(castVfxPrefab, transform.position, Quaternion.identity);
+
+            // Sync VFX lifetime with the configured animation duration.
+            var autoDestroy = vfxObj.GetComponent<VfxAutoDestroy>();
+            if (autoDestroy != null)
+                autoDestroy.lifetime = vfxDuration;
         }
 
         for (int i = 0; i < hits.Length; i++)
@@ -92,31 +110,29 @@ public class SandRepulseAbility : MonoBehaviour
             var col = hits[i];
             if (col == null) continue;
 
-            // Only act on enemies that can take damage / be targeted
             EnemyHealth eh = col.GetComponent<EnemyHealth>();
             if (eh == null) continue;
 
-            // Push away
-            Vector2 toEnemy = ((Vector2)col.transform.position - center);
+            // Push away from Dezzo.
+            Vector2 toEnemy = (Vector2)col.transform.position - center;
             Vector2 dir = toEnemy.sqrMagnitude > 0.0001f ? toEnemy.normalized : Random.insideUnitCircle.normalized;
+
             var kb = col.GetComponent<KnockbackReceiver>();
             if (kb == null) kb = col.gameObject.AddComponent<KnockbackReceiver>();
             kb.ApplyKnockback(dir, knockbackDistance, knockbackDuration);
 
-            // Mark for sharks
+            // Mark enemy so sharks prioritise it.
             var mark = col.GetComponent<EnemyMark>();
             if (mark == null) mark = col.gameObject.AddComponent<EnemyMark>();
             mark.SetMarked(markDuration);
         }
 
-        // Show pulse circle if enabled
         if (showCircle)
             GetComponent<RangeCircles>()?.ShowRepulsePulse(radius);
     }
 
     private void OnDrawGizmosSelected()
     {
-        // helpful editor viz
         Gizmos.color = new Color(0.9f, 0.8f, 0.3f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, radius);
     }

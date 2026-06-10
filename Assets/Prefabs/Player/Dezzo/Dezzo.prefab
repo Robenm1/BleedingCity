@@ -431,7 +431,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuneTimeAbility
   abilityAction: {fileID: 4129224989441685631, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
-  radius: 4.5
+  radius: 6
   enemySlowFactor: 0.4
   duration: 4
   enemyLayers:
@@ -440,8 +440,9 @@ MonoBehaviour:
   sharkSpeedMultiplier: 2
   sharkDamageMultiplier: 2
   baseCooldown: 18
-  castVfxPrefab: {fileID: 0}
-  showCircle: 1
+  castVfxPrefab: {fileID: 2858828855763459787, guid: 748dc36fd8557df45a10c0603d7809ff, type: 3}
+  vfxBaseRadius: 3
+  showCircle: 0
   slowZonePrefab: {fileID: 0}
 --- !u!114 &4202955822739122005
 MonoBehaviour:
@@ -463,8 +464,9 @@ MonoBehaviour:
   enemyLayers:
     serializedVersion: 2
     m_Bits: 8
-  baseCooldown: 2
-  castVfxPrefab: {fileID: 0}
+  cooldown: 5
+  vfxDuration: 0.9167
+  castVfxPrefab: {fileID: 134285581747331058, guid: 7b04bb913f0ad5a41bac75d97c9ebcfd, type: 3}
   showCircle: 1
 --- !u!114 &1147628825836974885
 MonoBehaviour:

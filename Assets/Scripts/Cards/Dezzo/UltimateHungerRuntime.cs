@@ -1,4 +1,4 @@
-﻿// Assets/Scripts/Cards/Dezzo/UltimateHungerRuntime.cs
+// Assets/Scripts/Cards/Dezzo/UltimateHungerRuntime.cs
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -21,7 +21,6 @@ public class UltimateHungerRuntime : MonoBehaviour
     [Header("Visual")]
     public Sprite biteMarkSprite;
     public Color biteMarkTint = new Color(1f, 0.15f, 0.15f, 1f);
-    public Vector2 biteMarkOffset = new Vector2(0f, 0.1f);
     public int sortingOrder = 300;
     [Tooltip("Uniform scale for the bite-mark sprite.")]
     public float biteMarkScale = 1f;
@@ -80,7 +79,6 @@ public class UltimateHungerRuntime : MonoBehaviour
                 execThreshold: executeThreshold,
                 sigilSprite: biteMarkSprite,
                 tint: biteMarkTint,
-                offset: biteMarkOffset,
                 sortingOrder: sortingOrder,
                 sigilScale: Mathf.Max(0.05f, biteMarkScale)
             );

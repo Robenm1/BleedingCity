@@ -19,9 +19,6 @@ public class RewindEffectSO : CardEffectSO
     [Tooltip("Disable DezzoShark behavior during revive.")]
     public bool freezeSharks = true;
 
-    [Tooltip("Disable player movement/controls during revive.")]
-    public bool lockControls = true;
-
     [Tooltip("Temporary invulnerability during revive.")]
     public bool invulnerableWhileReviving = true;
 
@@ -36,7 +33,6 @@ public class RewindEffectSO : CardEffectSO
         r.reviveDuration = Mathf.Max(0.2f, reviveDuration);
         r.healPercent = Mathf.Clamp01(healPercent);
         r.freezeSharks = freezeSharks;
-        r.lockControls = lockControls;
         r.invulnerableWhileReviving = invulnerableWhileReviving;
         r.invulnerableLayerName = invulnerableLayerName;
     }

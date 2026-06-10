@@ -65,7 +65,6 @@ GameObject:
   - component: {fileID: 2441784738184583823}
   - component: {fileID: 5758882080159495574}
   - component: {fileID: 1911876108009863408}
-  - component: {fileID: 2409485162786766219}
   - component: {fileID: 337340572582825778}
   m_Layer: 0
   m_Name: Pyro
@@ -511,19 +510,6 @@ MonoBehaviour:
   sliderTextRect: {fileID: 3477242968154442853}
   onFillColor: {r: 0, g: 0, b: 0, a: 1}
   offFillColor: {r: 1, g: 1, b: 1, a: 1}
---- !u!114 &2409485162786766219
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 486357500185902644}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0db280bb2cc5024c8247d7f2e0dd54d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FireDragonDebugSpawner
-  fireDragonPrefab: {fileID: 2580554846225425575, guid: 934b30ac7726bb1419fd994277af9a1d, type: 3}
 --- !u!114 &337340572582825778
 MonoBehaviour:
   m_ObjectHideFlags: 0

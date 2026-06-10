@@ -23,6 +23,8 @@ public class DuneTimeAbility : MonoBehaviour
 
     [Header("FX (optional)")]
     public GameObject castVfxPrefab;
+    [Tooltip("The radius value at which the VFX prefab's default scale fits perfectly. Scale grows proportionally beyond this.")]
+    public float vfxBaseRadius = 3f;
 
     [Header("UI / Debug")]
     [Tooltip("If ON, the slow zone shows a semi-transparent area while active.")]
@@ -66,7 +68,7 @@ public class DuneTimeAbility : MonoBehaviour
 
     private void OnPerformed(InputAction.CallbackContext ctx) => Activate();
 
-    /// Call from your PlayerControls when Ability2 is pressed if you’re not using InputActionReference.
+    /// Call from your PlayerControls when Ability2 is pressed if youï¿½re not using InputActionReference.
     public void Activate()
     {
         if (cdTimer > 0f) return;
@@ -75,7 +77,12 @@ public class DuneTimeAbility : MonoBehaviour
         float cd = baseCooldown * Mathf.Max(0.05f, stats.GetCooldownMultiplier());
         cdTimer = cd;
 
-        if (castVfxPrefab) Instantiate(castVfxPrefab, transform.position, Quaternion.identity);
+        if (castVfxPrefab)
+        {
+            var vfx = Instantiate(castVfxPrefab, transform.position, Quaternion.identity);
+            float scaleFactor = vfxBaseRadius > 0f ? radius / vfxBaseRadius : 1f;
+            vfx.transform.localScale = castVfxPrefab.transform.localScale * scaleFactor;
+        }
 
         // --- Spawn a stationary slow zone at cast position ---
         SpawnSlowZone();

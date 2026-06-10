@@ -39,11 +39,19 @@ public class SlowZone : MonoBehaviour
             zoneSprite.color = startColor;
         }
 
-        if (zoneSprite)
-        {
-            float scale = radius * 2f;
-            zoneSprite.transform.localScale = new Vector3(scale, scale, 1f);
-        }
+        if (zoneSprite != null)
+            ApplyZoneScale();
+    }
+
+    /// <summary>Scales the zone sprite to cover the full radius, accounting for the sprite's actual pixel dimensions.</summary>
+    private void ApplyZoneScale()
+    {
+        float spriteWorldWidth = 1f;
+        if (zoneSprite.sprite != null)
+            spriteWorldWidth = zoneSprite.sprite.rect.width / zoneSprite.sprite.pixelsPerUnit;
+
+        float scale = (radius * 2f) / Mathf.Max(0.001f, spriteWorldWidth);
+        zoneSprite.transform.localScale = new Vector3(scale, scale, 1f);
     }
 
     private void Start()

@@ -1,10 +1,11 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Handles "marked" state on an enemy. Also contains the optional
-/// Burning Storm DoT logic when enabled via EnemyMark.EnableBurningStormFor(...).
+/// Handles "marked" state on an enemy (DezertRose mark from Dezzo's 1st ability).
+/// Displays a sigil sprite above the enemy HP bar, coordinating position with
+/// EnemyBiteMark when both are active simultaneously.
 /// </summary>
 public class EnemyMark : MonoBehaviour
 {
@@ -12,13 +13,26 @@ public class EnemyMark : MonoBehaviour
     public bool isMarked = false;
 
     [Tooltip("(Optional) Who applied the current mark.")]
-    public Transform owner; // used for same-owner-only DoT filtering
+    public Transform owner;
 
-    private Coroutine markRoutine;
+    [Header("Visual")]
+    [Tooltip("The DezertRose mark sprite to display above the enemy.")]
+    public Sprite markSprite;
+    [Tooltip("Uniform scale applied to the mark sprite when shown alone (no active Bite Mark).")]
+    public float sigilScale = 1f;
+    [Tooltip("Sorting order for the sigil renderer. Should be above enemy sprites.")]
+    public int sortingOrder = 301;
+    [Tooltip("Extra world-space Y offset above the HP bar.")]
+    public float markAboveBarOffset = 0.15f;
+    [Tooltip("Horizontal distance each mark shifts when both DezertRose and Bite marks are active.")]
+    public float dualMarkSpread = 0.3f;
+
+    private SpriteRenderer _sigilRenderer;
+    private EnemyBiteMark _biteMark;
+    private Coroutine _markRoutine;
     private EnemyHealth _hp;
 
     // ---------- Burning Storm (static registry) ----------
-    // Per-owner settings (same-owner-only DoT).
     private struct BurnCfg
     {
         public float dps;
@@ -34,7 +48,6 @@ public class EnemyMark : MonoBehaviour
     /// <summary>
     /// Enable Burning Storm DoT for this player (owner).
     /// If requireSameOwner is true, only enemies marked by this owner take DoT.
-    /// If false, this call configures a GLOBAL DoT that applies to any marked enemy.
     /// </summary>
     public static void EnableBurningStormFor(Transform owner, float dps, float tickInterval, bool requireSameOwner = true)
     {
@@ -44,12 +57,7 @@ public class EnemyMark : MonoBehaviour
         if (requireSameOwner)
         {
             if (!owner) return;
-            s_perOwner[owner] = new BurnCfg
-            {
-                dps = dps,
-                tick = tickInterval,
-                requireSameOwner = true
-            };
+            s_perOwner[owner] = new BurnCfg { dps = dps, tick = tickInterval, requireSameOwner = true };
         }
         else
         {
@@ -60,16 +68,16 @@ public class EnemyMark : MonoBehaviour
     }
 
     /// <summary>
-    /// Disable Burning Storm DoT for a specific owner (same-owner entries).
+    /// Disable Burning Storm DoT for a specific owner.
     /// </summary>
     public static void DisableBurningStormFor(Transform owner)
     {
         if (!owner) return;
-        if (s_perOwner.ContainsKey(owner)) s_perOwner.Remove(owner);
+        s_perOwner.Remove(owner);
     }
 
     /// <summary>
-    /// Disable the global Burning Storm DoT (requireSameOwner=false entries).
+    /// Disable the global Burning Storm DoT.
     /// </summary>
     public static void DisableGlobalBurningStorm()
     {
@@ -80,20 +88,46 @@ public class EnemyMark : MonoBehaviour
     private void Awake()
     {
         _hp = GetComponent<EnemyHealth>();
+        _biteMark = GetComponent<EnemyBiteMark>();
+
         if (_hp == null)
             Debug.LogWarning("[EnemyMark] EnemyHealth not found on this enemy.", this);
+
+        EnsureSigil();
+        HideSigil();
     }
 
-    // ---------- Public API (original) ----------
+    private void Update()
+    {
+        if (!isMarked || _sigilRenderer == null || !_sigilRenderer.enabled) return;
+
+        // Sync scale to BiteMark's sigilScale when both are active; use own sigilScale otherwise.
+        bool bothActive = _biteMark != null && _biteMark.isActive;
+        float scale = bothActive ? Mathf.Max(0.05f, _biteMark.sigilScale) : Mathf.Max(0.05f, sigilScale);
+        _sigilRenderer.transform.localScale = Vector3.one * scale;
+
+        // Shift left when bite mark is also active so they sit side by side; centre otherwise.
+        float xShift = bothActive ? -dualMarkSpread : 0f;
+
+        // Position above the HP bar using EnemyHealth's own world offset as baseline.
+        float barY = _hp != null ? _hp.worldOffset.y : 1.2f;
+        _sigilRenderer.transform.position = (Vector2)transform.position
+            + new Vector2(xShift, barY + markAboveBarOffset);
+
+        // Keep the sprite upright — no spinning.
+        _sigilRenderer.transform.rotation = Quaternion.identity;
+    }
+
+    // ---------- Public API ----------
+
     public void SetMarked(float duration)
     {
-        // keep previous owner as-is
-        if (markRoutine != null) StopCoroutine(markRoutine);
-        markRoutine = StartCoroutine(MarkFor(duration));
+        if (_markRoutine != null) StopCoroutine(_markRoutine);
+        _markRoutine = StartCoroutine(MarkFor(duration));
     }
 
     /// <summary>
-    /// Optional: mark and set owner (recommended if you want same-owner DoT filtering).
+    /// Mark and assign owner (enables same-owner DoT filtering).
     /// </summary>
     public void SetMarkedBy(Transform markerOwner, float duration)
     {
@@ -102,39 +136,30 @@ public class EnemyMark : MonoBehaviour
     }
 
     // ---------- Internal ----------
+
     private IEnumerator MarkFor(float duration)
     {
         isMarked = true;
+        ShowSigil();
 
-        // DoT timers for this mark instance
-        float localTimer = 0f; // accumulates time between ticks
-
-        // Choose which config applies each frame:
-        // 1) Same-owner config (if exists and matches this.owner)
-        // 2) Global config (if enabled)
-        // If neither, no DoT.
-
+        float localTimer = 0f;
         float t = duration;
+
         while (t > 0f)
         {
             float dt = Time.deltaTime;
             t -= dt;
 
-            // Handle DoT if available
             float useDps = 0f;
             float useTick = 0.25f;
 
-            bool hasOwnerCfg = false;
             if (owner != null && s_perOwner.TryGetValue(owner, out var cfg))
             {
-                // same-owner DoT applies
                 useDps = cfg.dps;
                 useTick = cfg.tick;
-                hasOwnerCfg = true;
             }
             else if (s_hasGlobal)
             {
-                // fallback to global DoT (any mark)
                 useDps = s_globalDps;
                 useTick = s_globalTick;
             }
@@ -145,8 +170,7 @@ public class EnemyMark : MonoBehaviour
                 while (localTimer >= useTick)
                 {
                     localTimer -= useTick;
-                    float dmg = useDps * useTick; // DPS → per-tick
-                    _hp.TakeDamage(dmg);
+                    _hp.TakeDamage(useDps * useTick);
                 }
             }
 
@@ -154,6 +178,37 @@ public class EnemyMark : MonoBehaviour
         }
 
         isMarked = false;
-        markRoutine = null;
+        _markRoutine = null;
+        HideSigil();
+    }
+
+    private void EnsureSigil()
+    {
+        if (_sigilRenderer != null) return;
+
+        var go = new GameObject("DezertRoseMarkSigil");
+        go.transform.SetParent(transform, worldPositionStays: true);
+        _sigilRenderer = go.AddComponent<SpriteRenderer>();
+        _sigilRenderer.sortingOrder = sortingOrder;
+        _sigilRenderer.enabled = false;
+    }
+
+    private void ShowSigil()
+    {
+        if (_sigilRenderer == null) return;
+
+        if (markSprite != null) _sigilRenderer.sprite = markSprite;
+        _sigilRenderer.sortingOrder = sortingOrder;
+
+        // Match BiteMark's scale when both are active; use own sigilScale when alone.
+        bool bothActive = _biteMark != null && _biteMark.isActive;
+        float scale = bothActive ? Mathf.Max(0.05f, _biteMark.sigilScale) : Mathf.Max(0.05f, sigilScale);
+        _sigilRenderer.transform.localScale = Vector3.one * scale;
+        _sigilRenderer.enabled = true;
+    }
+
+    private void HideSigil()
+    {
+        if (_sigilRenderer != null) _sigilRenderer.enabled = false;
     }
 }
