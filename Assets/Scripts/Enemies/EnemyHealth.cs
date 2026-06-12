@@ -10,7 +10,7 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Health")]
     public float maxHP = 50f;
-    private float currentHP;
+    protected float currentHP;
 
     [Header("XP Drop")]
     [Tooltip("The coin prefab to drop on death. This prefab should have XPCoin.cs on it.")]
@@ -48,6 +48,11 @@ public class EnemyHealth : MonoBehaviour
 
     private float hideTimer = 0f;
 
+    /// <summary>
+    /// When true the HP bar is never auto-hidden. Set by subclasses (e.g. DummyHealth).
+    /// </summary>
+    protected bool alwaysShowHPBar = false;
+
     // Cached canvas info
     private Canvas hpCanvas;
     private RectTransform canvasRect;
@@ -60,10 +65,10 @@ public class EnemyHealth : MonoBehaviour
 
     // ===== Added: temporary vulnerability support =====
     // Multiplies incoming damage; returns to 1f when timer ends.
-    private float _vulnMul = 1f;
+    protected float _vulnMul = 1f;
     private float _vulnTimer = 0f;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         currentHP = maxHP;
 
@@ -100,7 +105,7 @@ public class EnemyHealth : MonoBehaviour
         if (hpUIRoot != null && hpUIRoot.gameObject.activeSelf)
         {
             hideTimer -= Time.deltaTime;
-            if (hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
+            if (!alwaysShowHPBar && hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
             {
                 HideHPUIImmediate();
             }
@@ -164,7 +169,7 @@ public class EnemyHealth : MonoBehaviour
     /// Same as TakeDamage but applies the Hell's Justice mark multiplier when active.
     /// Use this for all summon damage calls.
     /// </summary>
-    public void TakeSummonDamage(float dmg)
+    public virtual void TakeSummonDamage(float dmg)
     {
         var mark = GetComponent<HellsJusticeMark>();
         if (mark != null)
@@ -173,7 +178,7 @@ public class EnemyHealth : MonoBehaviour
         TakeDamage(dmg);
     }
 
-    public void TakeDamage(float dmg)
+    public virtual void TakeDamage(float dmg)
     {
         if (dmg <= 0f || currentHP <= 0f) return;
 
@@ -210,7 +215,7 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    private void UpdateHPUI()
+    protected void UpdateHPUI()
     {
         if (hpSlider != null)
         {
@@ -219,7 +224,7 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    private void ShowHPUI()
+    protected void ShowHPUI()
     {
         if (hpUIRoot == null) return;
 
@@ -240,7 +245,7 @@ public class EnemyHealth : MonoBehaviour
             hpUIRoot.gameObject.SetActive(false);
     }
 
-    private void Die()
+    protected virtual void Die()
     {
         DropXP();
         OnAnyEnemyDied?.Invoke(this);
