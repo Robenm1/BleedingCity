@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Handles "marked" state on an enemy (DezertRose mark from Dezzo's 1st ability).
-/// Displays a sigil sprite above the enemy HP bar, coordinating position with
-/// EnemyBiteMark when both are active simultaneously.
+/// Handles the "marked" state on an enemy (DezertRose mark from Dezzo's 1st ability).
+/// Displays a sigil sprite whose position and size are managed by
+/// <see cref="MarkDisplayController"/> so it stays consistent with all other marks.
 /// </summary>
-public class EnemyMark : MonoBehaviour
+public class EnemyMark : MonoBehaviour, IMarkDisplay
 {
     [Tooltip("Is this enemy currently marked for priority targeting?")]
     public bool isMarked = false;
@@ -18,19 +18,19 @@ public class EnemyMark : MonoBehaviour
     [Header("Visual")]
     [Tooltip("The DezertRose mark sprite to display above the enemy.")]
     public Sprite markSprite;
-    [Tooltip("Uniform scale applied to the mark sprite when shown alone (no active Bite Mark).")]
-    public float sigilScale = 1f;
     [Tooltip("Sorting order for the sigil renderer. Should be above enemy sprites.")]
     public int sortingOrder = 301;
-    [Tooltip("Extra world-space Y offset above the HP bar.")]
-    public float markAboveBarOffset = 0.15f;
-    [Tooltip("Horizontal distance each mark shifts when both DezertRose and Bite marks are active.")]
-    public float dualMarkSpread = 0.3f;
 
     private SpriteRenderer _sigilRenderer;
-    private EnemyBiteMark _biteMark;
     private Coroutine _markRoutine;
     private EnemyHealth _hp;
+
+    // ---- IMarkDisplay ----
+    /// <inheritdoc/>
+    public bool IsMarkVisible => isMarked && _sigilRenderer != null && _sigilRenderer.enabled;
+
+    /// <inheritdoc/>
+    public SpriteRenderer MarkSpriteRenderer => _sigilRenderer;
 
     // ---------- Burning Storm (static registry) ----------
     private struct BurnCfg
@@ -88,7 +88,8 @@ public class EnemyMark : MonoBehaviour
     private void Awake()
     {
         _hp = GetComponent<EnemyHealth>();
-        _biteMark = GetComponent<EnemyBiteMark>();
+        // Ensure the centralised layout controller is present on this enemy.
+        MarkDisplayController.EnsureOn(gameObject);
 
         if (_hp == null)
             Debug.LogWarning("[EnemyMark] EnemyHealth not found on this enemy.", this);
@@ -97,29 +98,9 @@ public class EnemyMark : MonoBehaviour
         HideSigil();
     }
 
-    private void Update()
-    {
-        if (!isMarked || _sigilRenderer == null || !_sigilRenderer.enabled) return;
-
-        // Sync scale to BiteMark's sigilScale when both are active; use own sigilScale otherwise.
-        bool bothActive = _biteMark != null && _biteMark.isActive;
-        float scale = bothActive ? Mathf.Max(0.05f, _biteMark.sigilScale) : Mathf.Max(0.05f, sigilScale);
-        _sigilRenderer.transform.localScale = Vector3.one * scale;
-
-        // Shift left when bite mark is also active so they sit side by side; centre otherwise.
-        float xShift = bothActive ? -dualMarkSpread : 0f;
-
-        // Position above the HP bar using EnemyHealth's own world offset as baseline.
-        float barY = _hp != null ? _hp.worldOffset.y : 1.2f;
-        _sigilRenderer.transform.position = (Vector2)transform.position
-            + new Vector2(xShift, barY + markAboveBarOffset);
-
-        // Keep the sprite upright — no spinning.
-        _sigilRenderer.transform.rotation = Quaternion.identity;
-    }
-
     // ---------- Public API ----------
 
+    /// <summary>Marks this enemy for the specified duration.</summary>
     public void SetMarked(float duration)
     {
         if (_markRoutine != null) StopCoroutine(_markRoutine);
@@ -127,7 +108,7 @@ public class EnemyMark : MonoBehaviour
     }
 
     /// <summary>
-    /// Mark and assign owner (enables same-owner DoT filtering).
+    /// Marks this enemy and assigns owner (enables same-owner DoT filtering).
     /// </summary>
     public void SetMarkedBy(Transform markerOwner, float duration)
     {
@@ -196,15 +177,10 @@ public class EnemyMark : MonoBehaviour
     private void ShowSigil()
     {
         if (_sigilRenderer == null) return;
-
         if (markSprite != null) _sigilRenderer.sprite = markSprite;
         _sigilRenderer.sortingOrder = sortingOrder;
-
-        // Match BiteMark's scale when both are active; use own sigilScale when alone.
-        bool bothActive = _biteMark != null && _biteMark.isActive;
-        float scale = bothActive ? Mathf.Max(0.05f, _biteMark.sigilScale) : Mathf.Max(0.05f, sigilScale);
-        _sigilRenderer.transform.localScale = Vector3.one * scale;
         _sigilRenderer.enabled = true;
+        // Position and scale are set by MarkDisplayController each LateUpdate.
     }
 
     private void HideSigil()

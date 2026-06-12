@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class FrostedOnEnemy : MonoBehaviour
+public class FrostedOnEnemy : MonoBehaviour, IMarkDisplay
 {
     [Header("State (runtime)")]
     [Range(0.05f, 1f)] public float slow = 0.6f;
@@ -10,6 +10,9 @@ public class FrostedOnEnemy : MonoBehaviour
 
     [Header("Icon (runtime)")]
     public Sprite frostIcon;
+
+    // These are kept for backward compatibility but position/size are now
+    // managed by MarkDisplayController.
     public Vector2 iconPivot = new Vector2(0f, 0.9f);
     public Vector2 iconSize = new Vector2(0.35f, 0.35f);
 
@@ -19,9 +22,18 @@ public class FrostedOnEnemy : MonoBehaviour
 
     public bool IsActive => durationRemaining > 0f;
 
+    // ---- IMarkDisplay ----
+    /// <inheritdoc/>
+    public bool IsMarkVisible => durationRemaining > 0f && _iconSR != null && _iconSR.enabled;
+
+    /// <inheritdoc/>
+    public SpriteRenderer MarkSpriteRenderer => _iconSR;
+
     private void Awake()
     {
         _tf = transform;
+        // Ensure the centralised layout controller is present on this enemy.
+        MarkDisplayController.EnsureOn(gameObject);
         EnsureIconObjects();
         HideIconImmediate();
     }
@@ -36,13 +48,13 @@ public class FrostedOnEnemy : MonoBehaviour
                 durationRemaining = 0f;
                 HideIconImmediate();
             }
-            else
-            {
-                UpdateIconTransform();
-            }
         }
     }
 
+    /// <summary>
+    /// Applies the frost effect: slows the enemy, enables the vulnerability window,
+    /// and shows the frost icon.
+    /// </summary>
     public void Apply(float slow, float dur, Sprite icon, Vector2 pivot, Vector2 size)
     {
         this.slow = Mathf.Clamp(slow, 0.05f, 1f);
@@ -57,7 +69,7 @@ public class FrostedOnEnemy : MonoBehaviour
             _iconSR.sprite = frostIcon;
             _iconSR.enabled = true;
             _iconHolder.gameObject.SetActive(true);
-            UpdateIconTransform();
+            // Position/scale are handled by MarkDisplayController each LateUpdate.
         }
         else
         {
@@ -83,13 +95,6 @@ public class FrostedOnEnemy : MonoBehaviour
             _iconSR.sortingOrder = 500;
             _iconSR.enabled = false;
         }
-    }
-
-    private void UpdateIconTransform()
-    {
-        if (_iconHolder == null || _iconSR == null) return;
-        _iconHolder.position = new Vector3(_tf.position.x + iconPivot.x, _tf.position.y + iconPivot.y, _tf.position.z);
-        _iconHolder.localScale = new Vector3(iconSize.x, iconSize.y, 1f);
     }
 
     private void HideIconImmediate()

@@ -4,6 +4,7 @@ using UnityEngine;
 /// Placed on the ground by PyroAbility2.
 /// Charges over time, turning from yellow to red.
 /// Only explodes on enemy contact once fully charged (red).
+/// Training dummy can also activate it when armed.
 /// </summary>
 public class HellBomb : MonoBehaviour
 {
@@ -36,13 +37,14 @@ public class HellBomb : MonoBehaviour
     private SpriteRenderer _sr;
 
     private static readonly Color ColorYellow = new Color(1f, 0.92f, 0.02f, 1f);
-    private static readonly Color ColorRed    = new Color(1f, 0.12f, 0.02f, 1f);
+    private static readonly Color ColorRed = new Color(1f, 0.12f, 0.02f, 1f);
 
     // ── Lifecycle ──────────────────────────────────────────────────────────
 
     private void Awake()
     {
         _sr = GetComponent<SpriteRenderer>();
+
         if (_sr != null)
             _sr.color = ColorYellow;
     }
@@ -65,10 +67,37 @@ public class HellBomb : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        TryTriggerExplosion(other);
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        TryTriggerExplosion(other);
+    }
+
+    private void TryTriggerExplosion(Collider2D other)
+    {
         if (!_armed || _exploded) return;
-        if (((1 << other.gameObject.layer) & enemyLayers) == 0) return;
+        if (other == null) return;
+
+        bool isEnemy = ((1 << other.gameObject.layer) & enemyLayers) != 0;
+        bool isDummy = other.GetComponent<DummyHealth>() != null;
+
+        if (!isEnemy && !isDummy) return;
 
         Explode();
+    }
+
+    // ── Public API ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Triggers the explosion if the bomb is armed and has not already exploded.
+    /// Used by special objects like the training dummy if needed.
+    /// </summary>
+    public void TriggerIfArmed()
+    {
+        if (_armed && !_exploded)
+            Explode();
     }
 
     // ── Internals ──────────────────────────────────────────────────────────
@@ -88,7 +117,7 @@ public class HellBomb : MonoBehaviour
                 mark = hit.gameObject.AddComponent<HellsJusticeMark>();
 
             mark.summonDamageMultiplier = markDamageMultiplier;
-            mark.iconSprite             = markIconSprite;
+            mark.iconSprite = markIconSprite;
             mark.Apply(markDuration);
         }
 

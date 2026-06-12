@@ -1,8 +1,8 @@
-// Assets/Scripts/Cards/Dezzo/EnemyBiteMark.cs
+// Assets/Scripts/Enemies/EnemyBiteMark.cs
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class EnemyBiteMark : MonoBehaviour
+public class EnemyBiteMark : MonoBehaviour, IMarkDisplay
 {
     [Header("State")]
     public bool isActive;
@@ -19,20 +19,21 @@ public class EnemyBiteMark : MonoBehaviour
     [Header("Visual")]
     public SpriteRenderer sigilRenderer;
     public int sortingOrder = 300;
-    [Tooltip("Uniform scale applied to the sigil sprite. DezertRose mark will mirror this value.")]
-    public float sigilScale = 1f;
-    [Tooltip("Extra world-space Y offset above the HP bar.")]
-    public float markAboveBarOffset = 0.15f;
-    [Tooltip("Horizontal distance this mark shifts right when both DezertRose and Bite marks are active.")]
-    public float dualMarkSpread = 0.3f;
 
     private EnemyHealth _hp;
-    private EnemyMark _dezMark;
+
+    // ---- IMarkDisplay ----
+    /// <inheritdoc/>
+    public bool IsMarkVisible => isActive && sigilRenderer != null && sigilRenderer.enabled;
+
+    /// <inheritdoc/>
+    public SpriteRenderer MarkSpriteRenderer => sigilRenderer;
 
     private void Awake()
     {
         _hp = GetComponent<EnemyHealth>();
-        _dezMark = GetComponent<EnemyMark>();
+        // Ensure the centralised layout controller is present on this enemy.
+        MarkDisplayController.EnsureOn(gameObject);
         EnsureSigil();
         HideSigil();
     }
@@ -44,23 +45,10 @@ public class EnemyBiteMark : MonoBehaviour
         remaining -= Time.deltaTime;
         if (remaining <= 0f) { Deactivate(); return; }
 
-        if (sigilRenderer)
-        {
-            // Shift right when DezertRose mark is also active so they sit side by side; centre otherwise.
-            bool bothActive = _dezMark != null && _dezMark.isMarked;
-            float xShift = bothActive ? dualMarkSpread : 0f;
-
-            // Position above the HP bar using EnemyHealth's own world offset as baseline.
-            float barY = _hp != null ? _hp.worldOffset.y : 1.2f;
-            sigilRenderer.transform.position = (Vector2)transform.position
-                + new Vector2(xShift, barY + markAboveBarOffset);
-            sigilRenderer.transform.localScale = Vector3.one * Mathf.Max(0.05f, sigilScale);
-
-            // Keep the sprite upright — no spinning.
-            sigilRenderer.transform.rotation = Quaternion.identity;
-        }
+        // Position and scale are handled by MarkDisplayController each LateUpdate.
     }
 
+    /// <summary>Activates the bite mark with the given parameters.</summary>
     public void Apply(
         float duration,
         float frenzyMoveMul, float frenzyAtkDelayMul, float frenzyDmgMul,
@@ -74,7 +62,6 @@ public class EnemyBiteMark : MonoBehaviour
         this.damageMul = Mathf.Max(0.01f, frenzyDmgMul);
         this.executeThreshold = Mathf.Clamp01(execThreshold);
         this.sortingOrder = sortingOrder;
-        this.sigilScale = Mathf.Max(0.05f, sigilScale);
 
         EnsureSigil();
         if (sigilRenderer)
@@ -82,13 +69,14 @@ public class EnemyBiteMark : MonoBehaviour
             sigilRenderer.sprite = sigilSprite;
             sigilRenderer.color = tint;
             sigilRenderer.sortingOrder = sortingOrder;
-            sigilRenderer.transform.localScale = Vector3.one * this.sigilScale;
             sigilRenderer.enabled = true;
+            // Position and scale are set by MarkDisplayController each LateUpdate.
         }
 
         isActive = true;
     }
 
+    /// <summary>Deactivates the bite mark and hides its sigil.</summary>
     public void Deactivate()
     {
         isActive = false;
@@ -96,6 +84,7 @@ public class EnemyBiteMark : MonoBehaviour
         HideSigil();
     }
 
+    /// <summary>Returns true if the enemy should be executed at its current HP.</summary>
     public bool ShouldExecute(float currentHP, float maxHP)
     {
         if (!isActive || maxHP <= 0f) return false;

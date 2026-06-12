@@ -532,6 +532,7 @@ GameObject:
   - component: {fileID: 8745645667796019205}
   - component: {fileID: 6663423230270001382}
   - component: {fileID: 5952951333903910030}
+  - component: {fileID: 8771539852140174384}
   m_Layer: 3
   m_Name: DummyEnemy
   m_TagString: Enemy
@@ -667,7 +668,7 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9190198732050190868}
-  m_BodyType: 2
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
@@ -726,10 +727,7 @@ MonoBehaviour:
   isMarked: 0
   owner: {fileID: 0}
   markSprite: {fileID: 228522357368548709, guid: d8666867c44e6cd41bb60535dea2b4cd, type: 3}
-  sigilScale: 0.2
   sortingOrder: 301
-  markAboveBarOffset: 0.15
-  dualMarkSpread: 0.35
 --- !u!114 &8745645667796019205
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -766,9 +764,6 @@ MonoBehaviour:
   executeThreshold: 0.1
   sigilRenderer: {fileID: 0}
   sortingOrder: 300
-  sigilScale: 0.6
-  markAboveBarOffset: 0.15
-  dualMarkSpread: 0.35
 --- !u!114 &5952951333903910030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -795,3 +790,19 @@ MonoBehaviour:
   damagePopupPrefab: {fileID: 5639216353573942427, guid: 2571eb39f5fd11340820399cbfbd3a55, type: 3}
   popupOffset: {x: 0, y: 1.04, z: 0}
   damageCounterText: {fileID: 2808964492001922795}
+  markTextYOffset: 40
+--- !u!114 &8771539852140174384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9190198732050190868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6a3c06822cbf3840a327e1fc03b4477, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MarkDisplayController
+  markSize: 0.24
+  markSpacing: 0.84
+  markAboveBarOffset: 0.66
