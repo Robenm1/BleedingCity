@@ -145,6 +145,9 @@ MonoBehaviour:
   explosionRadius: 4
   markDuration: 5
   markDamageMultiplier: 2
+  explosionDamageMultiplier: 1
+  explosionBaseDamage: 50
+  usePlayerDamage: 1
   markIconSprite: {fileID: -1011391836813977, guid: e3245addea760ff44917b8d564512308, type: 3}
   enemyLayers:
     serializedVersion: 2

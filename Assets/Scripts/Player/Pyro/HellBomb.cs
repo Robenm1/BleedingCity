@@ -22,6 +22,15 @@ public class HellBomb : MonoBehaviour
     [Tooltip("Damage multiplier applied to summon hits on marked enemies.")]
     public float markDamageMultiplier = 1.5f;
 
+    [Tooltip("Damage multiplier applied to the bomb's direct explosion damage.")]
+    public float explosionDamageMultiplier = 1f;
+
+[Tooltip("Base damage used by the explosion when not using the player's damage.")]
+    public float explosionBaseDamage = 10f;
+
+[Tooltip("When true uses the player's damage (PlayerStats.GetDamage()) as the explosion base; otherwise uses explosionBaseDamage.")]
+    public bool usePlayerDamage = true;
+
     [Header("Mark Icon")]
     [Tooltip("Sprite displayed above marked enemies. Assign HellsJusticeUI here.")]
     public Sprite markIconSprite;
@@ -35,6 +44,7 @@ public class HellBomb : MonoBehaviour
     private bool _exploded = false;
 
     private SpriteRenderer _sr;
+    private PlayerStats _stats;
 
     private static readonly Color ColorYellow = new Color(1f, 0.92f, 0.02f, 1f);
     private static readonly Color ColorRed = new Color(1f, 0.12f, 0.02f, 1f);
@@ -47,6 +57,9 @@ public class HellBomb : MonoBehaviour
 
         if (_sr != null)
             _sr.color = ColorYellow;
+
+        // try to find player stats so explosion can scale with player's damage
+        _stats = FindObjectOfType<PlayerStats>();
     }
 
     private void Update()
@@ -106,12 +119,21 @@ public class HellBomb : MonoBehaviour
     {
         _exploded = true;
 
+        // compute base damage using player stats or explicit base value based on inspector toggle
+        float sourceBase = (usePlayerDamage && _stats != null) ? _stats.GetDamage() : explosionBaseDamage;
+        float baseDmg = sourceBase * Mathf.Max(0f, explosionDamageMultiplier);
+
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius, enemyLayers);
 
         foreach (var hit in hits)
         {
             if (hit == null) continue;
 
+            // Apply direct explosion damage to enemies
+            var eh = hit.GetComponent<EnemyHealth>();
+            if (eh != null) eh.TakeDamage(baseDmg);
+
+            // Apply Hell's Justice mark that increases summon damage
             var mark = hit.GetComponent<HellsJusticeMark>();
             if (mark == null)
                 mark = hit.gameObject.AddComponent<HellsJusticeMark>();
