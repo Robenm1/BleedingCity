@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5268e825d2d1c7d48b8b49bd08012212, type: 3}
+  m_Name: WillOTheWispEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WillOTheWispEffectSO
+  killsPerWisp: 3
+  maxWisps: 3
+  targetMaxHpDamagePercent: 0.05
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  targetSearchRadius: 32
+  projectileSpeed: 14
+  hitRadius: 0.2
+  projectileLifetime: 3
+  wispSprites:
+  - {fileID: -8788939358243938081, guid: 59cfdb35b85f85a4096eedf55b17fd86, type: 3}
+  - {fileID: 4529214155582158348, guid: 1c2e35c36c42afa47b6bf86470e19d1e, type: 3}
+  - {fileID: 7876148599980623990, guid: fc4af5fe32633b44bbd26c7d641c6a9d, type: 3}
+  floatRadius: 2.19
+  floatSpeed: 2
+  bobAmount: 0.12
+  bobSpeed: 3
+  fadeInDuration: 0.35
+  sortingOrder: 5
+  showDebug: 1

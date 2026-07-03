@@ -13,7 +13,12 @@ public class PyroAbility2 : MonoBehaviour
 
     [Header("Cooldown")]
     public float baseCooldown = 6f;
+
+    [Tooltip("How many bombs Pyro can plant before the ability goes on cooldown.")]
+    public int bombsBeforeCooldown = 1;
+
     private float _cooldownTimer;
+    private int _bombsPlantedThisCycle = 0;
 
     [Header("Debug")]
     public bool showDebug = true;
@@ -26,7 +31,7 @@ public class PyroAbility2 : MonoBehaviour
     private void Awake()
     {
         _controls = GetComponent<PlayerControls>();
-        _stats    = GetComponent<PlayerStats>();
+        _stats = GetComponent<PlayerStats>();
     }
 
     private void OnEnable()
@@ -44,7 +49,15 @@ public class PyroAbility2 : MonoBehaviour
     private void Update()
     {
         if (_cooldownTimer > 0f)
+        {
             _cooldownTimer -= Time.deltaTime;
+
+            if (_cooldownTimer <= 0f)
+            {
+                _cooldownTimer = 0f;
+                _bombsPlantedThisCycle = 0;
+            }
+        }
     }
 
     // ── Input handler ──────────────────────────────────────────────────────
@@ -73,11 +86,35 @@ public class PyroAbility2 : MonoBehaviour
 
         Instantiate(hellBombPrefab, transform.position, Quaternion.identity);
 
-        float cd = baseCooldown * (_stats != null ? _stats.GetCooldownMultiplier() : 1f);
-        _cooldownTimer = cd;
+        _bombsPlantedThisCycle++;
 
-        if (showDebug)
-            Debug.Log($"[PyroAbility2] Hell Bomb planted! Cooldown: {cd:F1}s");
+        int maxBombs = Mathf.Max(1, bombsBeforeCooldown);
+
+        if (_bombsPlantedThisCycle >= maxBombs)
+        {
+            float cd = baseCooldown * (_stats != null ? _stats.GetCooldownMultiplier() : 1f);
+            _cooldownTimer = cd;
+
+            if (showDebug)
+                Debug.Log($"[PyroAbility2] Hell Bomb planted! Cooldown: {cd:F1}s");
+        }
+        else
+        {
+            if (showDebug)
+                Debug.Log($"[PyroAbility2] Hell Bomb planted! {_bombsPlantedThisCycle}/{maxBombs} before cooldown.");
+        }
+    }
+
+    // ── Public API ─────────────────────────────────────────────────────────
+
+    public void SetBombsBeforeCooldown(int value)
+    {
+        bombsBeforeCooldown = Mathf.Max(1, value);
+    }
+
+    public int GetBombsBeforeCooldown()
+    {
+        return Mathf.Max(1, bombsBeforeCooldown);
     }
 
     // ── UI helpers ─────────────────────────────────────────────────────────

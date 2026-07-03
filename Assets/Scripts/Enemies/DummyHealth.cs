@@ -88,6 +88,13 @@ public class DummyHealth : EnemyHealth
     /// </summary>
     public override void TakeDamage(float dmg)
     {
+        if (DeathTouchEffect.TryConvertToDot(this, dmg))
+            return;
+
+        TakeDamageDirect(dmg);
+    }
+    public override void TakeDamageDirect(float dmg)
+    {
         if (dmg <= 0f) return;
 
         // Apply multipliers manually so the popup shows the true damage value.
@@ -118,6 +125,7 @@ public class DummyHealth : EnemyHealth
         UpdateHPUI();
         ShowHPUI();
     }
+
 
     /// <summary>
     /// Override: dummy never dies.

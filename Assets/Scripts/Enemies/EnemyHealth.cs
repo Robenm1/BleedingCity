@@ -180,12 +180,20 @@ public class EnemyHealth : MonoBehaviour
 
     public virtual void TakeDamage(float dmg)
     {
+        if (DeathTouchEffect.TryConvertToDot(this, dmg))
+            return;
+
+        TakeDamageDirect(dmg);
+    }
+
+    public virtual void TakeDamageDirect(float dmg)
+    {
         if (dmg <= 0f || currentHP <= 0f) return;
 
-        // Apply temporary vulnerability multiplier (existing system)
+        // Apply temporary vulnerability multiplier
         dmg *= _vulnMul;
 
-        // NEW: Check if enemy is frosted and apply additional vulnerability
+        // Apply Frosted vulnerability
         var frosted = GetComponent<FrostedOnEnemy>();
         if (frosted != null && frosted.IsActive)
         {

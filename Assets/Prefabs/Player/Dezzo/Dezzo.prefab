@@ -67,6 +67,7 @@ GameObject:
   - component: {fileID: 1147628825836974885}
   - component: {fileID: 1676492338773289364}
   - component: {fileID: 1911876108009863408}
+  - component: {fileID: 980783356068191387}
   m_Layer: 0
   m_Name: Dezzo
   m_TagString: Player
@@ -738,6 +739,21 @@ MonoBehaviour:
   sliderTextRect: {fileID: 3477242968154442853}
   onFillColor: {r: 0, g: 0, b: 0, a: 1}
   offFillColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &980783356068191387
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da44b9f57bbc104f86d5c8d1aeb871b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
+  active1Effect: {fileID: 0}
+  active2Effect: {fileID: 0}
+  showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
   m_ObjectHideFlags: 0

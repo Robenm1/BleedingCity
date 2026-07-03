@@ -66,6 +66,7 @@ GameObject:
   - component: {fileID: 5758882080159495574}
   - component: {fileID: 1911876108009863408}
   - component: {fileID: 337340572582825778}
+  - component: {fileID: -4550060826921495122}
   m_Layer: 0
   m_Name: Pyro
   m_TagString: Player
@@ -286,7 +287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6cff10c77a545542ac7992d6c264f23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
-  characterData: {fileID: 11400000, guid: 63f12951c71d6e64d86146d6cbcc9995, type: 2}
+  characterData: {fileID: 11400000, guid: 8e4cb4f570cc0d944a80d62769449a2c, type: 2}
 --- !u!114 &-4824066855720338810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,6 +525,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PyroAbility2
   hellBombPrefab: {fileID: 2337603317889783104, guid: ecee5fcf54b945d4daf303ca18cd1fb9, type: 3}
   baseCooldown: 6
+  bombsBeforeCooldown: 1
+  showDebug: 1
+--- !u!114 &-4550060826921495122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da44b9f57bbc104f86d5c8d1aeb871b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
+  active1Effect: {fileID: 0}
+  active2Effect: {fileID: 0}
   showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
