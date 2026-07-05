@@ -37,8 +37,15 @@ public class PlayerMovement : MonoBehaviour
     private float dashCooldownTimer;
     private Vector2 dashDir;
 
+    // Out of the Ordinary runtime
+    private bool extraDashEnabled;
+    private float extraDashWindowDuration = 0.8f;
+    private bool extraDashWindowActive;
+    private bool extraDashAvailable;
+    private float extraDashWindowTimer;
 
     private PyroAbility1 pyroAbility;
+
     // cache per-frame
     private float baseMoveSpeed
     {
@@ -55,6 +62,7 @@ public class PlayerMovement : MonoBehaviour
             return speed;
         }
     }
+
     private float dashSpeed => (stats != null ? stats.GetDashSpeed() : 12f);
     private float dashDuration => (stats != null ? stats.GetDashDuration() : 0.15f);
     private float dashCooldown => (stats != null ? stats.GetDashCooldown() : 2f);
@@ -77,7 +85,12 @@ public class PlayerMovement : MonoBehaviour
     {
         // Dash timers
         if (dashCooldownTimer > 0f)
+        {
             dashCooldownTimer -= Time.deltaTime;
+
+            if (dashCooldownTimer < 0f)
+                dashCooldownTimer = 0f;
+        }
 
         if (isDashing)
         {
@@ -85,7 +98,20 @@ public class PlayerMovement : MonoBehaviour
             if (dashTimer <= 0f)
             {
                 isDashing = false;
+                dashTimer = 0f;
                 // remain on cooldown until dashCooldownTimer reaches 0
+            }
+        }
+
+        // Out of the Ordinary blue window timer
+        if (extraDashWindowActive)
+        {
+            extraDashWindowTimer -= Time.deltaTime;
+
+            if (extraDashWindowTimer <= 0f)
+            {
+                extraDashWindowTimer = 0f;
+                EndExtraDashWindow(startCooldown: true);
             }
         }
 
@@ -134,7 +160,16 @@ public class PlayerMovement : MonoBehaviour
 
         // Normal dash logic
         if (isDashing) return;
-        if (dashCooldownTimer > 0f && !allowInstantRedash) return;
+
+        // If the blue window is not active, normal cooldown blocks dash.
+        if (!extraDashWindowActive)
+        {
+            if (dashCooldownTimer > 0f) return;
+        }
+
+        // If the blue window is active but the extra dash was already consumed, block.
+        if (extraDashWindowActive && !extraDashAvailable)
+            return;
 
         // Determine dash direction:
         Vector2 desiredDir = moveInput.sqrMagnitude >= (minDashInput * minDashInput)
@@ -144,13 +179,89 @@ public class PlayerMovement : MonoBehaviour
         // If still no meaningful direction, cancel
         if (desiredDir.sqrMagnitude < 0.0001f) return;
 
+        // Is this dash the extra dash from Out of the Ordinary?
+        bool consumedExtraDash = extraDashWindowActive && extraDashAvailable;
+
+        if (consumedExtraDash)
+        {
+            extraDashAvailable = false;
+            EndExtraDashWindow(startCooldown: false);
+        }
+
         // Start dash
         isDashing = true;
         dashDir = desiredDir;
         dashTimer = Mathf.Max(0.01f, dashDuration);
-        dashCooldownTimer = Mathf.Max(dashCooldown, dashTimer); // cooldown at least the dash time
+
+        if (consumedExtraDash)
+        {
+            // After the extra dash, start normal cooldown.
+            dashCooldownTimer = Mathf.Max(dashCooldown, dashTimer);
+        }
+        else if (extraDashEnabled)
+        {
+            // First dash with Out of the Ordinary selected:
+            // open the blue second-dash window instead of starting cooldown immediately.
+            BeginExtraDashWindow();
+        }
+        else
+        {
+            // Normal dash behavior.
+            dashCooldownTimer = Mathf.Max(dashCooldown, dashTimer);
+        }
 
         OnDashStarted?.Invoke();
+    }
+
+    // ===== Out of the Ordinary API =====
+
+    public void EnableExtraDashWindow(float windowDuration)
+    {
+        extraDashEnabled = true;
+        extraDashWindowDuration = Mathf.Max(0.05f, windowDuration);
+    }
+
+    public void DisableExtraDashWindow()
+    {
+        extraDashEnabled = false;
+
+        if (extraDashWindowActive || extraDashAvailable)
+            EndExtraDashWindow(startCooldown: true);
+    }
+
+    private void BeginExtraDashWindow()
+    {
+        extraDashAvailable = true;
+        extraDashWindowActive = true;
+        extraDashWindowTimer = Mathf.Max(0.05f, extraDashWindowDuration);
+    }
+
+    private void EndExtraDashWindow(bool startCooldown)
+    {
+        if (!extraDashWindowActive && !extraDashAvailable) return;
+
+        extraDashWindowActive = false;
+        extraDashAvailable = false;
+        extraDashWindowTimer = 0f;
+
+        if (startCooldown)
+            dashCooldownTimer = Mathf.Max(dashCooldown, dashTimer);
+    }
+
+    public bool IsExtraDashWindowActive()
+    {
+        return extraDashWindowActive;
+    }
+
+    public float GetExtraDashWindowNormalized()
+    {
+        if (!extraDashWindowActive) return 0f;
+        return Mathf.Clamp01(extraDashWindowTimer / Mathf.Max(0.0001f, extraDashWindowDuration));
+    }
+
+    public float GetExtraDashWindowRemaining()
+    {
+        return Mathf.Max(0f, extraDashWindowTimer);
     }
 
     // ===== Optional helpers for UI/logic =====

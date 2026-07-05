@@ -71,11 +71,25 @@ public class WillOTheWispProjectile : MonoBehaviour
             return;
         }
 
-        float damage = enemy.maxHP * Mathf.Max(0f, targetMaxHpDamagePercent);
-        enemy.TakeDamage(damage);
+        var doll = enemy.GetComponent<AbyssalDollObject>();
+        if (doll == null)
+            doll = enemy.GetComponentInParent<AbyssalDollObject>();
 
-        if (showDebug)
-            Debug.Log($"[WillOTheWispProjectile] Hit {enemy.name} for {damage:F1} max HP damage.");
+        if (doll != null)
+        {
+            doll.HitByEnemyMaxHealthPercent(Mathf.Max(0f, targetMaxHpDamagePercent));
+
+            if (showDebug)
+                Debug.Log("[WillOTheWispProjectile] Hit Abyssal Doll. Doll released max-HP-percent wave.");
+        }
+        else
+        {
+            float damage = enemy.maxHP * Mathf.Max(0f, targetMaxHpDamagePercent);
+            enemy.TakeDamage(damage);
+
+            if (showDebug)
+                Debug.Log($"[WillOTheWispProjectile] Hit {enemy.name} for {damage:F1} max HP damage.");
+        }
 
         Destroy(gameObject);
     }

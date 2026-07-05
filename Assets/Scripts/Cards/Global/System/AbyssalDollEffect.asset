@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7a4ff3810ee8db4988537343cd04b42, type: 3}
+  m_Name: AbyssalDollEffect
+  m_EditorClassIdentifier: Assembly-CSharp::AbyssalDollEffectSO
+  dollPrefab: {fileID: 8077920304735461365, guid: 398f23ae199ae934ebb12c017bddddba, type: 3}
+  duration: 5
+  maxWaves: 10
+  waveRadius: 12
+  damageScaling: 1
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  slowDuration: 2
+  slowMultiplier: 0.5
+  showDebug: 1

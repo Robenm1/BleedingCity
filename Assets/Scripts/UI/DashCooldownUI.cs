@@ -5,21 +5,25 @@ public class DashCooldownUI : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private Slider slider;             // Assign your shaped slider here
+    [SerializeField] private Image fillImage;           // Assign the slider Fill image here
     [SerializeField] private PlayerMovement movement;   // Assign PlayerMovement from the player
     [SerializeField] private PlayerStats stats;         // Assign PlayerStats from the player
 
-    [Header("Behavior")]
-    [SerializeField] private bool hideWhenReady = true;   // Hide bar when cooldown = 0
-    [SerializeField] private bool fillFromFull = true;    // Full -> empty during cooldown
-    [SerializeField] private bool forceShowOnStart = false; // DEBUG: show bar at Start
+    [Header("Colors")]
+    [SerializeField] private Color cooldownColor = Color.white;
+    [SerializeField] private Color extraDashWindowColor = new Color(0.1f, 0.55f, 1f, 1f);
 
-    private float cdTotal;
-    private float cdRemaining;
-    private bool active;
+    [Header("Behavior")]
+    [SerializeField] private bool hideWhenReady = true;      // Hide bar when cooldown = 0
+    [SerializeField] private bool fillFromFull = true;       // Full -> empty during cooldown/window
+    [SerializeField] private bool forceShowOnStart = false;  // DEBUG: show bar at Start
 
     private void Reset()
     {
         slider = GetComponentInChildren<Slider>();
+
+        if (slider != null && slider.fillRect != null)
+            fillImage = slider.fillRect.GetComponent<Image>();
     }
 
     private void Awake()
@@ -27,34 +31,29 @@ public class DashCooldownUI : MonoBehaviour
         if (movement == null) movement = FindObjectOfType<PlayerMovement>();
         if (stats == null && movement != null) stats = movement.GetComponent<PlayerStats>();
 
+        if (slider == null) slider = GetComponentInChildren<Slider>();
+        if (fillImage == null && slider != null && slider.fillRect != null)
+            fillImage = slider.fillRect.GetComponent<Image>();
+
         if (movement == null) Debug.LogWarning("[DashCooldownUI] PlayerMovement reference is missing.");
         if (stats == null) Debug.LogWarning("[DashCooldownUI] PlayerStats reference is missing.");
         if (slider == null) Debug.LogWarning("[DashCooldownUI] Slider reference is missing.");
+        if (fillImage == null) Debug.LogWarning("[DashCooldownUI] Fill Image reference is missing. Color change will not work.");
     }
 
     private void OnEnable()
     {
-        if (movement != null)
-            movement.OnDashStarted += HandleDashStarted;
-
         SetupInitial();
-    }
-
-    private void OnDisable()
-    {
-        if (movement != null)
-            movement.OnDashStarted -= HandleDashStarted;
     }
 
     private void SetupInitial()
     {
-        cdTotal = stats != null ? stats.GetDashCooldown() : 2f;
-
         if (slider != null)
         {
             slider.minValue = 0f;
             slider.maxValue = 1f;
-            SetVisual(0f); // ready
+            SetVisual(0f);
+            SetColor(cooldownColor);
         }
 
         if (forceShowOnStart)
@@ -63,40 +62,53 @@ public class DashCooldownUI : MonoBehaviour
             SetVisible(!hideWhenReady);
     }
 
-    private void HandleDashStarted()
-    {
-        cdTotal = stats != null ? stats.GetDashCooldown() : 2f;
-        cdRemaining = cdTotal;
-        active = true;
-
-        Debug.Log("[DashCooldownUI] Dash started: total cooldown = " + cdTotal);
-
-        SetVisible(true);
-        SetVisual(fillFromFull ? 1f : 0f);
-    }
-
     private void Update()
     {
-        if (!active) return;
+        if (movement == null || slider == null) return;
 
-        cdRemaining -= Time.deltaTime;
-        if (cdRemaining <= 0f)
+        // Blue Out of the Ordinary window has priority over normal cooldown.
+        if (movement.IsExtraDashWindowActive())
         {
-            cdRemaining = 0f;
-            active = false;
-            SetVisual(0f);
-            if (hideWhenReady) SetVisible(false);
+            float t = movement.GetExtraDashWindowNormalized();
+
+            SetVisible(true);
+            SetColor(extraDashWindowColor);
+            SetVisual(fillFromFull ? t : (1f - t));
+
             return;
         }
 
-        float t = Mathf.Clamp01(cdRemaining / Mathf.Max(0.0001f, cdTotal));
-        SetVisual(fillFromFull ? t : (1f - t));
+        float cdRemaining = movement.GetDashCooldownRemaining();
+        float cdNormalized = movement.GetDashCooldownNormalized();
+
+        if (cdRemaining > 0f)
+        {
+            SetVisible(true);
+            SetColor(cooldownColor);
+            SetVisual(fillFromFull ? cdNormalized : (1f - cdNormalized));
+
+            return;
+        }
+
+        SetVisual(0f);
+        SetColor(cooldownColor);
+
+        if (hideWhenReady)
+            SetVisible(false);
+        else
+            SetVisible(true);
     }
 
     private void SetVisual(float normalized)
     {
         if (slider != null)
             slider.value = Mathf.Clamp01(normalized);
+    }
+
+    private void SetColor(Color color)
+    {
+        if (fillImage != null)
+            fillImage.color = color;
     }
 
     private void SetVisible(bool v)
@@ -109,11 +121,12 @@ public class DashCooldownUI : MonoBehaviour
     [ContextMenu("Kick Test Cooldown")]
     public void KickTestCooldown()
     {
-        cdTotal = stats != null ? stats.GetDashCooldown() : 2f;
-        cdRemaining = cdTotal;
-        active = true;
+        if (slider == null) return;
+
         SetVisible(true);
+        SetColor(cooldownColor);
         SetVisual(1f);
-        Debug.Log("[DashCooldownUI] Test cooldown kicked for " + cdTotal + "s");
+
+        Debug.Log("[DashCooldownUI] Test cooldown kicked visually.");
     }
 }

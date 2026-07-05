@@ -3763,8 +3763,8 @@ MonoBehaviour:
   - {fileID: 1102914195}
   cardButtonPrefab: {fileID: 915280354089844054, guid: 1b83c2a794b52894d92fe6f3186e78e7, type: 3}
   globalCards:
-  - {fileID: 11400000, guid: 8fa8033a15b72ec4a9285a1b95d19811, type: 2}
-  - {fileID: 11400000, guid: c8ba76f57ee7b0a46b653e929b429d62, type: 2}
+  - {fileID: 11400000, guid: 1dbef791ca1f0c341b5d3d9a17eb3df5, type: 2}
+  - {fileID: 11400000, guid: 20c6040c68cea6e46893840eafca6791, type: 2}
   - {fileID: 11400000, guid: 3fcce1fdcc5fe824ab6ac289d38c23e7, type: 2}
   - {fileID: 11400000, guid: 003ce6ec494028a4996cd7cf868cfb1d, type: 2}
   - {fileID: 11400000, guid: 08cd3b85014d3e04ca03b4b865d76979, type: 2}
@@ -4233,42 +4233,6 @@ PrefabInstance:
       propertyPath: rootCanvas
       value: 
       objectReference: {fileID: 1452621394}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_fontSize
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.w
-      value: 18.630402
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.x
-      value: 13.656479
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.y
-      value: 13.817009
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.z
-      value: 14.780197
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_fontAsset
-      value: 
-      objectReference: {fileID: 11400000, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_fontSizeBase
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_sharedMaterial
-      value: 
-      objectReference: {fileID: 2140474, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
-    - target: {fileID: 2192882555443182872, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_hasFontAssetChanged
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4878254691222997052, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -4349,65 +4313,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.x
-      value: -5.0835648
-      objectReference: {fileID: 0}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.y
-      value: -2.5485535
-      objectReference: {fileID: 0}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_margin.z
-      value: -0.6009064
-      objectReference: {fileID: 0}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_fontAsset
-      value: 
-      objectReference: {fileID: 11400000, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_sharedMaterial
-      value: 
-      objectReference: {fileID: 2140474, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
-    - target: {fileID: 5918306205006933115, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_hasFontAssetChanged
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7313538272830261926, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 419.19
-      objectReference: {fileID: 0}
-    - target: {fileID: 7313538272830261926, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: -8.41
-      objectReference: {fileID: 0}
     - target: {fileID: 7723264280673510759, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
       propertyPath: m_Name
       value: CardPreviewPanel
-      objectReference: {fileID: 0}
-    - target: {fileID: 7723264280673510759, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 431.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 229.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 2.57
-      objectReference: {fileID: 0}
-    - target: {fileID: 8184576856657957236, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -253.66
-      objectReference: {fileID: 0}
-    - target: {fileID: 8456630747298308451, guid: ca28e4f2e3ad15b488a6b2eade139de5, type: 3}
-      propertyPath: m_RaycastTarget
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
