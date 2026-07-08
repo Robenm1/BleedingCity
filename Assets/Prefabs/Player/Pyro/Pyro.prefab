@@ -541,6 +541,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
   active1Effect: {fileID: 0}
   active2Effect: {fileID: 0}
+  pollInputDirectly: 1
   showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
@@ -1207,8 +1208,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DashCooldownUI
   slider: {fileID: 646350842877049134}
+  fillImage: {fileID: 0}
   movement: {fileID: 245963259996808390}
   stats: {fileID: 1310834842053227826}
+  cooldownColor: {r: 1, g: 1, b: 1, a: 1}
+  extraDashWindowColor: {r: 0.1, g: 0.55, b: 1, a: 1}
   hideWhenReady: 0
   fillFromFull: 1
   forceShowOnStart: 1
@@ -1585,14 +1589,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4931850645396927492, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8233472507669663413, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8233472507669663413, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
-      propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

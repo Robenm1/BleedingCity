@@ -396,6 +396,7 @@ GameObject:
   - component: {fileID: 2705734652969819118}
   - component: {fileID: 8745645667796019205}
   - component: {fileID: 6663423230270001382}
+  - component: {fileID: -8742720352621543061}
   m_Layer: 3
   m_Name: Enemy
   m_TagString: Enemy
@@ -590,10 +591,7 @@ MonoBehaviour:
   isMarked: 0
   owner: {fileID: 0}
   markSprite: {fileID: 228522357368548709, guid: d8666867c44e6cd41bb60535dea2b4cd, type: 3}
-  sigilScale: 2
   sortingOrder: 301
-  baseOffset: {x: 0, y: 1.6}
-  dualMarkSpread: 0.35
 --- !u!114 &5547772089164951838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -689,7 +687,19 @@ MonoBehaviour:
   damageMul: 1
   executeThreshold: 0.1
   sigilRenderer: {fileID: 0}
-  offset: {x: 0, y: 1.6}
   sortingOrder: 300
-  sigilScale: 0.6
-  dualMarkSpread: 0.35
+--- !u!114 &-8742720352621543061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9190198732050190868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6a3c06822cbf3840a327e1fc03b4477, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MarkDisplayController
+  markSize: 2
+  markSpacing: 0.84
+  markAboveBarOffset: 0.66
