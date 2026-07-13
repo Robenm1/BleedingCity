@@ -3765,7 +3765,7 @@ MonoBehaviour:
   globalCards:
   - {fileID: 11400000, guid: 1dbef791ca1f0c341b5d3d9a17eb3df5, type: 2}
   - {fileID: 11400000, guid: 20c6040c68cea6e46893840eafca6791, type: 2}
-  - {fileID: 11400000, guid: 3fcce1fdcc5fe824ab6ac289d38c23e7, type: 2}
+  - {fileID: 11400000, guid: 5bcce5dca0ffac54e84a86badd5322f6, type: 2}
   - {fileID: 11400000, guid: 003ce6ec494028a4996cd7cf868cfb1d, type: 2}
   - {fileID: 11400000, guid: 08cd3b85014d3e04ca03b4b865d76979, type: 2}
   characterButtons:
