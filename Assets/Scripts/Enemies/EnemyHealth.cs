@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System;                 // for Action
-using URandom = UnityEngine.Random;  // <-- alias Unity's Random
+using System;
+using URandom = UnityEngine.Random;
 
 public class EnemyHealth : MonoBehaviour
 {
-    // ===== Global death event =====
+    // ===== Global events =====
     public static event Action<EnemyHealth> OnAnyEnemyDied;
+
+    // Added for Bullet from the Past.
+    // Fires whenever any enemy successfully takes damage.
+    public static event Action<EnemyHealth, float> OnAnyEnemyDamaged;
 
     [Header("Health")]
     public float maxHP = 50f;
@@ -22,7 +26,6 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("Random drop scatter distance so coins don't all stack perfectly.")]
     public float dropScatterRadius = 0.3f;
 
-    // ===== HP BAR =====
     [Header("HP Bar UI")]
     [Tooltip("Root RectTransform of the enemy HP UI (can be the Slider parent).")]
     public RectTransform hpUIRoot;
@@ -43,28 +46,25 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("Smooth the UI movement to avoid jitter when the enemy/camera moves.")]
     public bool smoothFollow = true;
 
-    [Tooltip("Time (seconds) to reach the target UI position. 0.08�0.15 is a good range.")]
+    [Tooltip("Time (seconds) to reach the target UI position. 0.08-0.15 is a good range.")]
     [Range(0.01f, 0.3f)] public float followSmoothTime = 0.1f;
 
     private float hideTimer = 0f;
 
     /// <summary>
-    /// When true the HP bar is never auto-hidden. Set by subclasses (e.g. DummyHealth).
+    /// When true the HP bar is never auto-hidden. Set by subclasses such as DummyHealth.
     /// </summary>
     protected bool alwaysShowHPBar = false;
 
-    // Cached canvas info
     private Canvas hpCanvas;
     private RectTransform canvasRect;
     private bool isWorldSpaceCanvas;
 
-    // Smoothing state
     private Vector2 _uiVel;
     private Vector2 _lastAnchoredPos;
     private bool _convertingToTurret = false;
 
-    // ===== Added: temporary vulnerability support =====
-    // Multiplies incoming damage; returns to 1f when timer ends.
+    // Temporary vulnerability support.
     protected float _vulnMul = 1f;
     private float _vulnTimer = 0f;
 
@@ -78,33 +78,34 @@ public class EnemyHealth : MonoBehaviour
             if (hpCanvas != null)
             {
                 canvasRect = hpCanvas.GetComponent<RectTransform>();
-                isWorldSpaceCanvas = (hpCanvas.renderMode == RenderMode.WorldSpace);
+                isWorldSpaceCanvas = hpCanvas.renderMode == RenderMode.WorldSpace;
             }
         }
 
-        if (uiCamera == null) uiCamera = Camera.main;
+        if (uiCamera == null)
+            uiCamera = Camera.main;
 
         InitHPUI();
-        HideHPUIImmediate(); // start hidden
+        HideHPUIImmediate();
     }
 
     private void Update()
     {
-        // ===== Added: tick vulnerability timer =====
         if (_vulnTimer > 0f)
         {
             _vulnTimer -= Time.deltaTime;
+
             if (_vulnTimer <= 0f)
             {
                 _vulnTimer = 0f;
-                _vulnMul = 1f; // back to normal damage
+                _vulnMul = 1f;
             }
         }
 
-        // Handle timed hiding (only when full)
         if (hpUIRoot != null && hpUIRoot.gameObject.activeSelf)
         {
             hideTimer -= Time.deltaTime;
+
             if (!alwaysShowHPBar && hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
             {
                 HideHPUIImmediate();
@@ -120,7 +121,6 @@ public class EnemyHealth : MonoBehaviour
 
         if (isWorldSpaceCanvas)
         {
-            // World Space: position directly in world
             if (smoothFollow)
             {
                 hpUIRoot.position = Vector3.Lerp(
@@ -134,16 +134,15 @@ public class EnemyHealth : MonoBehaviour
                 hpUIRoot.position = worldPos;
             }
 
-            hpUIRoot.rotation = Quaternion.identity; // keep upright; billboard if desired
+            hpUIRoot.rotation = Quaternion.identity;
             return;
         }
 
-        // Screen Space � Overlay or Camera: convert to canvas local space
-        Camera cam = (hpCanvas.renderMode == RenderMode.ScreenSpaceCamera) ? uiCamera : null;
+        Camera cam = hpCanvas.renderMode == RenderMode.ScreenSpaceCamera ? uiCamera : null;
 
-        Vector2 screenPoint = (cam != null)
+        Vector2 screenPoint = cam != null
             ? (Vector2)cam.WorldToScreenPoint(worldPos)
-            : (Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(worldPos) : (Vector2)worldPos);
+            : Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(worldPos) : (Vector2)worldPos;
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint, cam, out var localPoint))
         {
@@ -151,6 +150,7 @@ public class EnemyHealth : MonoBehaviour
             {
                 Vector2 target = localPoint;
                 Vector2 smoothed = Vector2.SmoothDamp(_lastAnchoredPos, target, ref _uiVel, followSmoothTime);
+
                 hpUIRoot.anchoredPosition = smoothed;
                 _lastAnchoredPos = smoothed;
             }
@@ -190,18 +190,23 @@ public class EnemyHealth : MonoBehaviour
     {
         if (dmg <= 0f || currentHP <= 0f) return;
 
-        // Apply temporary vulnerability multiplier
         dmg *= _vulnMul;
 
-        // Apply Frosted vulnerability
         var frosted = GetComponent<FrostedOnEnemy>();
         if (frosted != null && frosted.IsActive)
         {
             dmg *= frosted.vulnerabilityMultiplier;
         }
 
-        currentHP -= dmg;
-        if (currentHP < 0f) currentHP = 0f;
+        float finalDamage = Mathf.Max(0f, dmg);
+        if (finalDamage <= 0f) return;
+
+        currentHP -= finalDamage;
+        if (currentHP < 0f)
+            currentHP = 0f;
+
+        // Added for Bullet from the Past.
+        NotifyEnemyDamaged(finalDamage);
 
         UpdateHPUI();
         ShowHPUI();
@@ -212,7 +217,19 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Notifies global listeners that this enemy took damage.
+    /// Used by cards like Bullet from the Past.
+    /// </summary>
+    protected void NotifyEnemyDamaged(float damage)
+    {
+        if (damage <= 0f) return;
+
+        OnAnyEnemyDamaged?.Invoke(this, damage);
+    }
+
     // ===== Internals =====
+
     private void InitHPUI()
     {
         if (hpSlider != null)
@@ -227,7 +244,7 @@ public class EnemyHealth : MonoBehaviour
     {
         if (hpSlider != null)
         {
-            float t = (maxHP > 0f) ? (currentHP / maxHP) : 0f;
+            float t = maxHP > 0f ? currentHP / maxHP : 0f;
             hpSlider.value = Mathf.Clamp01(t);
         }
     }
@@ -239,7 +256,6 @@ public class EnemyHealth : MonoBehaviour
         if (!hpUIRoot.gameObject.activeSelf)
             hpUIRoot.gameObject.SetActive(true);
 
-        // seed smoothing so first frame doesn't pop
         _lastAnchoredPos = hpUIRoot.anchoredPosition;
         _uiVel = Vector2.zero;
 
@@ -249,6 +265,7 @@ public class EnemyHealth : MonoBehaviour
     private void HideHPUIImmediate()
     {
         if (hpUIRoot == null) return;
+
         if (hpUIRoot.gameObject.activeSelf)
             hpUIRoot.gameObject.SetActive(false);
     }
@@ -264,13 +281,12 @@ public class EnemyHealth : MonoBehaviour
             return;
         }
 
-        if (hpUIRoot != null) Destroy(hpUIRoot.gameObject);
+        if (hpUIRoot != null)
+            Destroy(hpUIRoot.gameObject);
+
         Destroy(gameObject);
     }
 
-
-
-    // Add this new public method at the end:
     public void MarkAsConvertingToTurret()
     {
         _convertingToTurret = true;
@@ -282,29 +298,27 @@ public class EnemyHealth : MonoBehaviour
 
         for (int i = 0; i < coinsToDrop; i++)
         {
-            // NOTE: use the alias so we call Unity's Random, not System.Random
             Vector2 offset = URandom.insideUnitCircle * dropScatterRadius;
             Vector3 spawnPos = transform.position + (Vector3)offset;
+
             Instantiate(xpCoinPrefab, spawnPos, Quaternion.identity);
         }
     }
 
-    // Optional: heal for testing
     public void Heal(float amount)
     {
         if (amount <= 0f || currentHP <= 0f) return;
-        currentHP = Mathf.Min(currentHP + amount, maxHP);
-        UpdateHPUI();
 
-        // Show briefly, then auto-hide if full
+        currentHP = Mathf.Min(currentHP + amount, maxHP);
+
+        UpdateHPUI();
         ShowHPUI();
     }
 
-    // ===== Added: API to apply temporary extra damage taken =====
     /// <summary>
     /// Makes this enemy take more damage for a duration.
     /// multiplier = 1.25 means +25% damage taken.
-    /// Duration stacks by time (extends), but multiplier is simply replaced.
+    /// Duration stacks by time, but multiplier is replaced.
     /// </summary>
     public void ApplyVulnerability(float multiplier, float duration)
     {
