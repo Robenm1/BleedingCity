@@ -153,6 +153,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::XPCoin
   xpValue: 10
   lifetime: 10000
+  pulledByMagnet: 0
+  magnetCollectDistance: 0.15
 --- !u!114 &4619683009332477303
 MonoBehaviour:
   m_ObjectHideFlags: 0
