@@ -18,6 +18,7 @@ MonoBehaviour:
   characterPrefab: {fileID: 486357500185902644, guid: 1d38a348440a08f4a86edc0571d11ef1, type: 3}
   buttonIcon: {fileID: -5414414667083140112, guid: 8dc1e358f9f764b47a81b9dd68b34c73, type: 3}
   selectedIcon: {fileID: -8303507540158623852, guid: e6edbe03c345997459df24853cb8355a, type: 3}
+  element: {fileID: 6049605792901559095, guid: cba29dc21b890404e84a50ba53fae62e, type: 3}
   specialCards:
   - {fileID: 11400000, guid: c9dd312e212350f4fa8318f367be0727, type: 2}
   - {fileID: 11400000, guid: 75c1225cbdfab084ea89d284fa0bff81, type: 2}

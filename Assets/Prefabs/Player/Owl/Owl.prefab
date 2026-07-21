@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
   - component: {fileID: 3862180431503610800}
+  - component: {fileID: 1095243450846978903}
   - component: {fileID: 5575580848035458983}
   - component: {fileID: 2064043576822500695}
   - component: {fileID: -2161914475344748440}
@@ -189,6 +190,22 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &1095243450846978903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193aafd9c5154c8429edd27ea5c3c48e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementHolder
+  element: {fileID: 11400000, guid: 06cf85d6ba86e0e4da9393e95474e141, type: 2}
+  applyOnStart: 1
+  removeOnDisable: 1
+  showDebug: 1
 --- !u!114 &5575580848035458983
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,7 +222,7 @@ MonoBehaviour:
   moveAction: {fileID: -1680190386980627800, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   clonePrefab: {fileID: 5374256766268261222, guid: ef2fbd87fc9e9d64d998592ea985d950, type: 3}
   minLaunchDistance: 2
-  maxLaunchDistance: 12
+  maxLaunchDistance: 10
   distancePerSecond: 8
   cloneDuration: 8
   baseCooldown: 18
@@ -294,9 +311,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
   moveSpeed: 6
-  baseDamage: 10
+  baseDamage: 12
   attackDelay: 1.13
-  attackRange: 4.41
+  attackRange: 15
   projectileSpeed: 9
   pickupRange: 2
   maxHealth: 100
@@ -450,6 +467,11 @@ MonoBehaviour:
   invulnDuration: 0.25
   maxHpChangeMode: 0
   keepPercentFavorUp: 1
+  useNearestElementSourceWhenNoSource: 1
+  fallbackElementSearchRadius: 3
+  fallbackElementSourceLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   healthSlider: {fileID: 7266356325758677685}
   healthText: {fileID: 0}
 --- !u!114 &5758882080159495574

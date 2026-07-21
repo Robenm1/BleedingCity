@@ -12,6 +12,13 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     public TextMeshProUGUI descriptionText;
     public PaperCutNameDisplay paperCutName;
 
+    [Header("Element Display")]
+    public Image elementIcon;
+    public TextMeshProUGUI elementTxt;
+
+    [Tooltip("Text shown when a character has an element icon.")]
+    public string elementLabel = "Element :";
+
     [Header("Pool Panels in #6 (fixed panels)")]
     public RectTransform[] topRowSlots;     // character specials (row 1)
     public RectTransform[] bottomRowSlots;  // global cards (row 2)
@@ -79,9 +86,12 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
             selectedIconImage.sprite = null;
             selectedIconImage.enabled = false; // hide until a character is chosen
         }
+
         if (nameText) nameText.text = string.Empty;
         if (paperCutName) paperCutName.SetName(string.Empty);
         if (descriptionText) descriptionText.text = string.Empty;
+
+        UpdateElementUI(null);
 
         ShowAllSlots(topRowSlots, true);
         ShowAllSlots(bottomRowSlots, true);
@@ -124,9 +134,12 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
                 selectedIconImage.enabled = false;
             }
         }
+
         if (nameText) nameText.text = data ? data.displayName : string.Empty;
         if (paperCutName) paperCutName.SetName(data ? data.displayName : string.Empty);
         if (descriptionText) descriptionText.text = data ? data.description : string.Empty;
+
+        UpdateElementUI(data);
 
         // Rebuild pool only when selection truly changes
         RebuildPoolIntoFixedSlots();
@@ -134,6 +147,36 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
 
         // Let flow re-validate (e.g., if minCardsRequired==0 it can enable)
         if (flowRef) flowRef.OnDeckChanged();
+    }
+
+    // ======================= Element UI =======================
+    private void UpdateElementUI(CharacterData data)
+    {
+        bool hasElement =
+            data != null &&
+            data.element != null;
+
+        if (elementTxt)
+        {
+            elementTxt.gameObject.SetActive(hasElement);
+            elementTxt.text = hasElement ? elementLabel : string.Empty;
+        }
+
+        if (elementIcon)
+        {
+            elementIcon.gameObject.SetActive(hasElement);
+
+            if (hasElement)
+            {
+                elementIcon.sprite = data.element;
+                elementIcon.color = Color.white;
+                elementIcon.preserveAspect = true;
+            }
+            else
+            {
+                elementIcon.sprite = null;
+            }
+        }
     }
 
     // ======================= Pool → Deck (panel children) =======================
@@ -243,17 +286,25 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private RectTransform FirstEmptyDeckPanel()
     {
         if (deckSlots == null) return null;
+
         foreach (var slot in deckSlots)
         {
             if (!slot) continue;
 
             bool hasCard = false;
+
             for (int i = 0; i < slot.childCount; i++)
             {
-                if (slot.GetChild(i).GetComponent<CardButton>()) { hasCard = true; break; }
+                if (slot.GetChild(i).GetComponent<CardButton>())
+                {
+                    hasCard = true;
+                    break;
+                }
             }
+
             if (!hasCard) return slot;
         }
+
         return null;
     }
 
@@ -261,6 +312,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     {
         foreach (var b in _deckButtons)
             if (b && b.card && !b.card.isGlobal) return false;
+
         return true;
     }
 
@@ -268,12 +320,14 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     {
         foreach (var b in _deckButtons)
             if (b && b.card == data) return true;
+
         return false;
     }
 
     private void StretchToSlot(RectTransform rt)
     {
         if (!rt) return;
+
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
         rt.pivot = new Vector2(0.5f, 0.5f);
@@ -286,6 +340,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     {
         foreach (var b in _spawnedPoolButtons)
             if (b) Destroy(b.gameObject);
+
         _spawnedPoolButtons.Clear();
 
         CleanupRow(topRowSlots);
@@ -295,33 +350,42 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private void CleanupRow(RectTransform[] slots)
     {
         if (slots == null) return;
-        foreach (var s in slots) DestroyOnlyChildrenWith<CardButton>(s);
+
+        foreach (var s in slots)
+            DestroyOnlyChildrenWith<CardButton>(s);
     }
 
     private void DestroyOnlyChildrenWith<T>(RectTransform parent) where T : Component
     {
         if (!parent) return;
+
         for (int i = parent.childCount - 1; i >= 0; i--)
         {
             var c = parent.GetChild(i);
-            if (c.GetComponent<T>()) Destroy(c.gameObject);
+
+            if (c.GetComponent<T>())
+                Destroy(c.gameObject);
         }
     }
 
     private void ShowAllSlots(RectTransform[] slots, bool show)
     {
         if (slots == null) return;
-        foreach (var s in slots) if (s) s.gameObject.SetActive(show);
+
+        foreach (var s in slots)
+            if (s) s.gameObject.SetActive(show);
     }
 
     private void ClearDeckCompletely()
     {
         foreach (var kv in _shakeRoutines)
             if (kv.Key) ResetCardTransform(kv.Key);
+
         _shakeRoutines.Clear();
 
         for (int i = _deckButtons.Count - 1; i >= 0; i--)
             if (_deckButtons[i]) Destroy(_deckButtons[i].gameObject);
+
         _deckButtons.Clear();
 
         CleanupRow(deckSlots);
@@ -331,10 +395,12 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private void LockOtherCharacters(CharacterData keepActive)
     {
         if (characterButtons == null) return;
+
         foreach (var cb in characterButtons)
         {
             if (!cb) continue;
-            bool isOwner = (cb.character == keepActive);
+
+            bool isOwner = cb.character == keepActive;
             cb.SetLocked(!isOwner); // owner normal; others dark/click-limited per your CharacterButton
         }
     }
@@ -342,6 +408,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private void UnlockAllCharacters()
     {
         if (characterButtons == null) return;
+
         foreach (var cb in characterButtons)
             if (cb) cb.SetLocked(false);
     }
@@ -352,7 +419,9 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
         for (int i = 0; i < _spawnedPoolButtons.Count; i++)
         {
             var btn = _spawnedPoolButtons[i];
+
             if (!btn || btn.card == null) continue;
+
             bool alreadyInDeck = IsCardAlreadyInDeck(btn.card);
             btn.SetPicked(alreadyInDeck);
         }
@@ -362,10 +431,12 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private void ShakeNonGlobalDeckCards()
     {
         if (!enableLockShake) return;
+
         foreach (var b in _deckButtons)
         {
             if (!b || b.card == null) continue;
             if (b.card.isGlobal) continue;
+
             StartShake(b);
         }
     }
@@ -373,7 +444,9 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     private void StartShake(CardButton deckBtn)
     {
         if (!deckBtn) return;
+
         StopShake(deckBtn);
+
         var co = StartCoroutine(ShakeCardRoutine(deckBtn));
         _shakeRoutines[deckBtn] = co;
     }
@@ -387,6 +460,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
             StopCoroutine(running);
             _shakeRoutines.Remove(deckBtn);
         }
+
         ResetCardTransform(deckBtn);
     }
 
@@ -394,6 +468,7 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
     {
         var rt = deckBtn ? deckBtn.GetComponent<RectTransform>() : null;
         if (!rt) return;
+
         rt.anchoredPosition = Vector2.zero;
         rt.localRotation = Quaternion.identity;
     }
@@ -407,17 +482,22 @@ public class CharacterSelectUIManager : MonoBehaviour, IDeckSelectionSource
         rt.localRotation = Quaternion.identity;
 
         float t = 0f;
+
         while (t < shakeDuration)
         {
             t += Time.unscaledDeltaTime;
+
             float s = Mathf.Sin(t * shakeSpeed);
+
             rt.anchoredPosition = new Vector2(s * shakeAmplitude, 0f);
             rt.localRotation = Quaternion.Euler(0f, 0f, s * shakeRotDegrees);
+
             yield return null;
         }
 
         rt.anchoredPosition = Vector2.zero;
         rt.localRotation = Quaternion.identity;
+
         _shakeRoutines.Remove(deckBtn);
     }
 

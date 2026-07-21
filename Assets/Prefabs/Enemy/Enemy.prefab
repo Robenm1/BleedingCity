@@ -389,6 +389,7 @@ GameObject:
   - component: {fileID: 7546225952706028532}
   - component: {fileID: 5037275623398519154}
   - component: {fileID: 927325116337731819}
+  - component: {fileID: -1327345831731092076}
   - component: {fileID: 4656824249713248735}
   - component: {fileID: 1669205797632959267}
   - component: {fileID: 8625476498345817687}
@@ -551,6 +552,22 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &-1327345831731092076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9190198732050190868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193aafd9c5154c8429edd27ea5c3c48e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementHolder
+  element: {fileID: 11400000, guid: 06cf85d6ba86e0e4da9393e95474e141, type: 2}
+  applyOnStart: 1
+  removeOnDisable: 1
+  showDebug: 1
 --- !u!114 &4656824249713248735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -642,9 +659,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHP: 300
+  useElementResistance: 1
+  defaultElementResistance: 0
+  elementResistances: []
+  showElementResistanceDebug: 0
   xpCoinPrefab: {fileID: 1002948382768153302, guid: 1320d5c3167a7974b8e36688e7d53171, type: 3}
   coinsToDrop: 1
   dropScatterRadius: 0.3
+  damagePopupPrefab: {fileID: 5639216353573942427, guid: 2571eb39f5fd11340820399cbfbd3a55, type: 3}
+  popupOffset: {x: 0, y: 1.04, z: 0}
+  defaultDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  popupRandomXSpread: 0.2
   hpUIRoot: {fileID: 9018636422149063345}
   hpSlider: {fileID: 4205786238937959023}
   visibleForSecondsAfterHit: 2

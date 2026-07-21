@@ -145,8 +145,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SnowOwlFeather
   baseSpeed: 20
   stickDistance: 0.05
-  maxLifetime: 6
-  maxTravelDistance: 15
+  maxLifetime: 100
+  maxTravelDistance: 17
   recallDamageMultiplier: 1.5
   enemyLayers:
     serializedVersion: 2

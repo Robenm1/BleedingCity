@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 6849275854092906215}
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
+  - component: {fileID: 6887383513217915165}
   - component: {fileID: 8593381778966886581}
   - component: {fileID: 4641778687578412701}
   - component: {fileID: -3917791599823754831}
@@ -161,6 +162,22 @@ MonoBehaviour:
   m_DefaultActionMap: 
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &6887383513217915165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193aafd9c5154c8429edd27ea5c3c48e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementHolder
+  element: {fileID: 11400000, guid: a08a059a842f20b469819f44b98d07f5, type: 2}
+  applyOnStart: 1
+  removeOnDisable: 1
+  showDebug: 1
 --- !u!114 &8593381778966886581
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,9 +258,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   baseAttackInterval: 0.8
-  slashDistance: 1.5
+  slashDistance: 1.09
   slashArcAngle: 160
-  slashRange: 3
+  slashRange: 2.65
   showSlashGizmo: 1
   showDetectionGizmo: 1
   slashGizmoColor: {r: 1, g: 0.5, b: 0, a: 0.3}
@@ -326,9 +343,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
   moveSpeed: 6
-  baseDamage: 15
+  baseDamage: 20
   attackDelay: 0.77
-  attackRange: 4.41
+  attackRange: 3.06
   projectileSpeed: 9
   pickupRange: 2
   maxHealth: 100
@@ -465,6 +482,11 @@ MonoBehaviour:
   invulnDuration: 0.25
   maxHpChangeMode: 0
   keepPercentFavorUp: 1
+  useNearestElementSourceWhenNoSource: 1
+  fallbackElementSearchRadius: 3
+  fallbackElementSourceLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   healthSlider: {fileID: 7266356325758677685}
   healthText: {fileID: 0}
 --- !u!114 &5758882080159495574

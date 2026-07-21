@@ -13,8 +13,12 @@ public class CharacterData : ScriptableObject
     public GameObject characterPrefab;
 
     [Header("Icons")]
-    public Sprite buttonIcon;   // small icon for grid button (#5)
-    public Sprite selectedIcon; // big portrait (#1)
+    public Sprite buttonIcon;
+    public Sprite selectedIcon;
+
+    [Header("Element")]
+    [Tooltip("Element icon shown in the character select scene.")]
+    public Sprite element;
 
     [Header("Special Cards (Top Row in #6)")]
     public List<CardData> specialCards = new List<CardData>();

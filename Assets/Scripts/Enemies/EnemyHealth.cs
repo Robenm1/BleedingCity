@@ -5,55 +5,66 @@ using URandom = UnityEngine.Random;
 
 public class EnemyHealth : MonoBehaviour
 {
-    // ===== Global events =====
     public static event Action<EnemyHealth> OnAnyEnemyDied;
-
-    // Added for Bullet from the Past.
-    // Fires whenever any enemy successfully takes damage.
     public static event Action<EnemyHealth, float> OnAnyEnemyDamaged;
+
+    [Serializable]
+    public class ElementResistance
+    {
+        [Tooltip("The source element this resistance applies against.")]
+        public BaseElementSO element;
+
+        [Tooltip(
+            "0 = normal damage\n" +
+            "0.25 = takes 25% less damage\n" +
+            "0.5 = takes 50% less damage\n" +
+            "1 = immune\n" +
+            "-0.25 = takes 25% more damage\n" +
+            "-0.5 = takes 50% more damage\n" +
+            "-1 = takes double damage"
+        )]
+        [Range(-2f, 1f)]
+        public float resistance = 0f;
+    }
 
     [Header("Health")]
     public float maxHP = 50f;
     protected float currentHP;
 
+    [Header("Element Resistance")]
+    public bool useElementResistance = true;
+
+    [Range(-2f, 1f)]
+    public float defaultElementResistance = 0f;
+
+    public ElementResistance[] elementResistances;
+
+    public bool showElementResistanceDebug = false;
+
     [Header("XP Drop")]
-    [Tooltip("The coin prefab to drop on death. This prefab should have XPCoin.cs on it.")]
     public GameObject xpCoinPrefab;
-
-    [Tooltip("How many coins to drop on death.")]
     public int coinsToDrop = 1;
-
-    [Tooltip("Random drop scatter distance so coins don't all stack perfectly.")]
     public float dropScatterRadius = 0.3f;
 
+    [Header("Damage Popup")]
+    public GameObject damagePopupPrefab;
+    public Vector3 popupOffset = new Vector3(0f, 0.8f, 0f);
+    public Color defaultDamageColor = Color.white;
+    public float popupRandomXSpread = 0.2f;
+
     [Header("HP Bar UI")]
-    [Tooltip("Root RectTransform of the enemy HP UI (can be the Slider parent).")]
     public RectTransform hpUIRoot;
-
-    [Tooltip("Slider that displays enemy HP (0..1).")]
     public Slider hpSlider;
-
-    [Tooltip("How long (seconds) the bar stays visible after taking damage.")]
     public float visibleForSecondsAfterHit = 2f;
-
-    [Tooltip("Vertical world offset for the bar above the enemy.")]
     public Vector3 worldOffset = new Vector3(0f, 1.2f, 0f);
-
-    [Tooltip("For Screen Space - Camera canvases, set the UI camera here. For Overlay you can leave null.")]
     public Camera uiCamera;
 
     [Header("Follow Smoothing")]
-    [Tooltip("Smooth the UI movement to avoid jitter when the enemy/camera moves.")]
     public bool smoothFollow = true;
-
-    [Tooltip("Time (seconds) to reach the target UI position. 0.08-0.15 is a good range.")]
     [Range(0.01f, 0.3f)] public float followSmoothTime = 0.1f;
 
     private float hideTimer = 0f;
 
-    /// <summary>
-    /// When true the HP bar is never auto-hidden. Set by subclasses such as DummyHealth.
-    /// </summary>
     protected bool alwaysShowHPBar = false;
 
     private Canvas hpCanvas;
@@ -64,7 +75,8 @@ public class EnemyHealth : MonoBehaviour
     private Vector2 _lastAnchoredPos;
     private bool _convertingToTurret = false;
 
-    // Temporary vulnerability support.
+    private static ElementHolder _cachedPlayerElementHolder;
+
     protected float _vulnMul = 1f;
     private float _vulnTimer = 0f;
 
@@ -75,6 +87,7 @@ public class EnemyHealth : MonoBehaviour
         if (hpUIRoot != null)
         {
             hpCanvas = hpUIRoot.GetComponentInParent<Canvas>();
+
             if (hpCanvas != null)
             {
                 canvasRect = hpCanvas.GetComponent<RectTransform>();
@@ -107,9 +120,7 @@ public class EnemyHealth : MonoBehaviour
             hideTimer -= Time.deltaTime;
 
             if (!alwaysShowHPBar && hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
-            {
                 HideHPUIImmediate();
-            }
         }
     }
 
@@ -163,64 +174,75 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    // ===== Public damage API =====
-
-    /// <summary>
-    /// Same as TakeDamage but applies the Hell's Justice mark multiplier when active.
-    /// Use this for all summon damage calls.
-    /// </summary>
     public virtual void TakeSummonDamage(float dmg)
     {
+        TakeSummonDamageFromSource(null, dmg);
+    }
+
+    public virtual void TakeSummonDamageFromSource(GameObject damageSource, float dmg)
+    {
         var mark = GetComponent<HellsJusticeMark>();
+
         if (mark != null)
             dmg *= mark.GetDamageMultiplier();
 
-        TakeDamage(dmg);
+        TakeDamageFromSource(damageSource, dmg);
     }
 
     public virtual void TakeDamage(float dmg)
     {
+        TakeDamageFromSource(null, dmg);
+    }
+
+    public virtual void TakeDamageFromSource(GameObject damageSource, float dmg)
+    {
         if (DeathTouchEffect.TryConvertToDot(this, dmg))
             return;
 
-        TakeDamageDirect(dmg);
+        TakeDamageDirectFromSource(damageSource, dmg);
     }
 
     public virtual void TakeDamageDirect(float dmg)
     {
+        TakeDamageDirectFromSource(null, dmg);
+    }
+
+    public virtual void TakeDamageDirectFromSource(GameObject damageSource, float dmg)
+    {
         if (dmg <= 0f || currentHP <= 0f) return;
+
+        dmg = ApplySourceElementDirectDamage(damageSource, dmg);
+
+        dmg = ApplyTargetElementResistance(damageSource, dmg);
+
+        dmg = ApplyOwnElementIncomingDamage(damageSource, dmg);
 
         dmg *= _vulnMul;
 
         var frosted = GetComponent<FrostedOnEnemy>();
         if (frosted != null && frosted.IsActive)
-        {
             dmg *= frosted.vulnerabilityMultiplier;
-        }
 
         float finalDamage = Mathf.Max(0f, dmg);
         if (finalDamage <= 0f) return;
 
         currentHP -= finalDamage;
+
         if (currentHP < 0f)
             currentHP = 0f;
 
-        // Added for Bullet from the Past.
         NotifyEnemyDamaged(finalDamage);
+
+        Color popupColor = GetDamageSourceColor(damageSource);
+        SpawnDamagePopup(finalDamage, popupColor);
 
         UpdateHPUI();
         ShowHPUI();
 
         if (currentHP <= 0f)
-        {
             Die();
-        }
     }
 
-    /// <summary>
-    /// Notifies global listeners that this enemy took damage.
-    /// Used by cards like Bullet from the Past.
-    /// </summary>
     protected void NotifyEnemyDamaged(float damage)
     {
         if (damage <= 0f) return;
@@ -228,7 +250,160 @@ public class EnemyHealth : MonoBehaviour
         OnAnyEnemyDamaged?.Invoke(this, damage);
     }
 
-    // ===== Internals =====
+    protected float ApplySourceElementDirectDamage(GameObject damageSource, float damage)
+    {
+        ElementHolder holder = GetElementHolderFromSourceOrFallback(damageSource);
+
+        if (holder == null || !holder.HasElement())
+            return damage;
+
+        return holder.ModifyDirectDamage(gameObject, damage);
+    }
+
+    protected float ApplyTargetElementResistance(GameObject damageSource, float damage)
+    {
+        if (!useElementResistance)
+            return damage;
+
+        ElementHolder sourceHolder = GetElementHolderFromSourceOrFallback(damageSource);
+
+        if (sourceHolder == null || !sourceHolder.HasElement())
+        {
+            if (showElementResistanceDebug)
+                Debug.Log($"[Resistance] {name}: No source element. Damage stays {damage:F1}");
+
+            return damage;
+        }
+
+        BaseElementSO sourceElement = sourceHolder.GetElement();
+
+        if (sourceElement == null)
+        {
+            if (showElementResistanceDebug)
+                Debug.Log($"[Resistance] {name}: Source holder has no element. Damage stays {damage:F1}");
+
+            return damage;
+        }
+
+        float resistance = defaultElementResistance;
+        bool foundSpecificResistance = false;
+
+        if (elementResistances != null)
+        {
+            for (int i = 0; i < elementResistances.Length; i++)
+            {
+                ElementResistance entry = elementResistances[i];
+
+                if (entry == null || entry.element == null)
+                    continue;
+
+                if (ElementsMatch(entry.element, sourceElement))
+                {
+                    resistance = entry.resistance;
+                    foundSpecificResistance = true;
+                    break;
+                }
+            }
+        }
+
+        resistance = Mathf.Clamp(resistance, -2f, 1f);
+
+        float multiplier = 1f - resistance;
+        float finalDamage = damage * multiplier;
+
+        if (showElementResistanceDebug)
+        {
+            string sourceName = !string.IsNullOrEmpty(sourceElement.elementName)
+                ? sourceElement.elementName
+                : sourceElement.name;
+
+            Debug.Log(
+                $"[Resistance] {name} hit by {sourceName}. " +
+                $"Specific: {foundSpecificResistance}, " +
+                $"Resistance: {resistance:F2}, " +
+                $"Multiplier: {multiplier:F2}, " +
+                $"Damage: {damage:F1} -> {finalDamage:F1}"
+            );
+        }
+
+        return finalDamage;
+    }
+
+    protected float ApplyOwnElementIncomingDamage(GameObject damageSource, float damage)
+    {
+        ElementHolder ownHolder = GetComponent<ElementHolder>();
+
+        if (ownHolder == null)
+            ownHolder = GetComponentInParent<ElementHolder>();
+
+        if (ownHolder == null || !ownHolder.HasElement())
+            return damage;
+
+        return ownHolder.ModifyIncomingDirectDamage(damageSource, damage);
+    }
+
+    private bool ElementsMatch(BaseElementSO resistanceElement, BaseElementSO sourceElement)
+    {
+        if (resistanceElement == null || sourceElement == null)
+            return false;
+
+        if (resistanceElement == sourceElement)
+            return true;
+
+        if (!string.IsNullOrEmpty(resistanceElement.elementName) &&
+            !string.IsNullOrEmpty(sourceElement.elementName) &&
+            resistanceElement.elementName == sourceElement.elementName)
+            return true;
+
+        if (resistanceElement.GetType() == sourceElement.GetType())
+            return true;
+
+        return false;
+    }
+
+    protected Color GetDamageSourceColor(GameObject damageSource)
+    {
+        ElementHolder holder = GetElementHolderFromSourceOrFallback(damageSource);
+
+        if (holder == null || !holder.HasElement())
+            return defaultDamageColor;
+
+        return holder.GetElementColor();
+    }
+
+    protected ElementHolder GetElementHolderFromSourceOrFallback(GameObject damageSource)
+    {
+        if (damageSource != null)
+        {
+            ElementHolder sourceHolder = damageSource.GetComponent<ElementHolder>();
+
+            if (sourceHolder == null)
+                sourceHolder = damageSource.GetComponentInParent<ElementHolder>();
+
+            if (sourceHolder != null && sourceHolder.HasElement())
+                return sourceHolder;
+        }
+
+        return GetPlayerElementHolderFallback();
+    }
+
+    private ElementHolder GetPlayerElementHolderFallback()
+    {
+        if (_cachedPlayerElementHolder != null)
+            return _cachedPlayerElementHolder;
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+
+        if (player == null)
+            return null;
+
+        _cachedPlayerElementHolder = player.GetComponent<ElementHolder>();
+
+        if (_cachedPlayerElementHolder == null)
+            _cachedPlayerElementHolder = player.GetComponentInChildren<ElementHolder>();
+
+        return _cachedPlayerElementHolder;
+    }
 
     private void InitHPUI()
     {
@@ -268,6 +443,21 @@ public class EnemyHealth : MonoBehaviour
 
         if (hpUIRoot.gameObject.activeSelf)
             hpUIRoot.gameObject.SetActive(false);
+    }
+
+    protected void SpawnDamagePopup(float dmg, Color popupColor)
+    {
+        if (damagePopupPrefab == null) return;
+
+        Vector3 spawnPos = transform.position + popupOffset;
+        spawnPos.x += URandom.Range(-popupRandomXSpread, popupRandomXSpread);
+
+        GameObject popupObj = Instantiate(damagePopupPrefab, spawnPos, Quaternion.identity);
+
+        DamagePopup popup = popupObj.GetComponent<DamagePopup>();
+
+        if (popup != null)
+            popup.Setup(dmg, popupColor);
     }
 
     protected virtual void Die()
@@ -315,14 +505,15 @@ public class EnemyHealth : MonoBehaviour
         ShowHPUI();
     }
 
-    /// <summary>
-    /// Makes this enemy take more damage for a duration.
-    /// multiplier = 1.25 means +25% damage taken.
-    /// Duration stacks by time, but multiplier is replaced.
-    /// </summary>
     public void ApplyVulnerability(float multiplier, float duration)
     {
         _vulnMul = Mathf.Max(0.01f, multiplier);
         _vulnTimer = Mathf.Max(_vulnTimer, duration);
+    }
+
+    public float GetHealthPercent()
+    {
+        if (maxHP <= 0f) return 0f;
+        return Mathf.Clamp01(currentHP / maxHP);
     }
 }

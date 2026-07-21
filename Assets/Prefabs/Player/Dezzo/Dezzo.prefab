@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
   - component: {fileID: 3862180431503610800}
+  - component: {fileID: 2960644882789890532}
   - component: {fileID: 1545714411647290351}
   - component: {fileID: -4824066855720338810}
   - component: {fileID: 832137133396565875}
@@ -188,6 +189,22 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &2960644882789890532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193aafd9c5154c8429edd27ea5c3c48e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementHolder
+  element: {fileID: 11400000, guid: 0f7b3c02688db22419cb6e05fc915fb9, type: 2}
+  applyOnStart: 1
+  removeOnDisable: 1
+  showDebug: 1
 --- !u!114 &1545714411647290351
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -239,7 +256,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
   moveSpeed: 6
-  baseDamage: 10
+  baseDamage: 20
   attackDelay: 1.13
   attackRange: 4.41
   projectileSpeed: 9
@@ -378,6 +395,11 @@ MonoBehaviour:
   invulnDuration: 0.25
   maxHpChangeMode: 0
   keepPercentFavorUp: 1
+  useNearestElementSourceWhenNoSource: 1
+  fallbackElementSearchRadius: 3
+  fallbackElementSourceLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   healthSlider: {fileID: 7266356325758677685}
   healthText: {fileID: 0}
 --- !u!114 &5758882080159495574

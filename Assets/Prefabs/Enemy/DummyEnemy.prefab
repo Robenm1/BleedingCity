@@ -777,9 +777,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DummyHealth
   maxHP: 300
+  useElementResistance: 1
+  defaultElementResistance: 0
+  elementResistances:
+  - element: {fileID: 11400000, guid: a08a059a842f20b469819f44b98d07f5, type: 2}
+    resistance: 0.32
   xpCoinPrefab: {fileID: 0}
   coinsToDrop: 1
   dropScatterRadius: 0.3
+  damagePopupPrefab: {fileID: 5639216353573942427, guid: 2571eb39f5fd11340820399cbfbd3a55, type: 3}
+  popupOffset: {x: 0, y: 1.04, z: 0}
+  defaultDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  popupRandomXSpread: 0.2
   hpUIRoot: {fileID: 9018636422149063345}
   hpSlider: {fileID: 4205786238937959023}
   visibleForSecondsAfterHit: 2
@@ -787,8 +796,6 @@ MonoBehaviour:
   uiCamera: {fileID: 0}
   smoothFollow: 0
   followSmoothTime: 0.1
-  damagePopupPrefab: {fileID: 5639216353573942427, guid: 2571eb39f5fd11340820399cbfbd3a55, type: 3}
-  popupOffset: {x: 0, y: 1.04, z: 0}
   damageCounterText: {fileID: 2808964492001922795}
   markTextYOffset: 40
 --- !u!114 &8771539852140174384

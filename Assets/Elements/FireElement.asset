@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ced5091c03790a409a9971ab884ac8e, type: 3}
+  m_Name: FireElement
+  m_EditorClassIdentifier: Assembly-CSharp::FireElementSO
+  elementName: Fire
+  elementColor: {r: 1, g: 0.3667643, b: 0, a: 1}
+  maxMissingHealthBonus: 0.4
+  scaleWithMissingHealth: 1
+  missingHealthStartThreshold: 0
+  burnDamagePercentOfHit: 0.5
+  minimumBurnDamage: 0
+  burnDuration: 2
+  burnTickInterval: 0.25
+  stackBurnDamage: 1
+  showDebug: 0

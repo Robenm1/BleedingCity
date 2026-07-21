@@ -17,8 +17,12 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("When Max HP Changes (from buffs or edits)")]
     public MaxHpChangeMode maxHpChangeMode = MaxHpChangeMode.KeepPercent;
-    [Tooltip("With KeepPercent, don't reduce HP due to rounding when max increases.")]
     public bool keepPercentFavorUp = true;
+
+    [Header("Element Damage")]
+    public bool useNearestElementSourceWhenNoSource = true;
+    public float fallbackElementSearchRadius = 3f;
+    public LayerMask fallbackElementSourceLayers = ~0;
 
     [Header("Optional UI")]
     [SerializeField] private Slider healthSlider;
@@ -39,6 +43,7 @@ public class PlayerHealth : MonoBehaviour
     private void Awake()
     {
         stats = GetComponent<PlayerStats>();
+
         if (stats == null)
         {
             Debug.LogError("[PlayerHealth] Missing PlayerStats.");
@@ -51,6 +56,7 @@ public class PlayerHealth : MonoBehaviour
     {
         _lastSeenMax = Mathf.Max(1f, stats.maxHealth);
         _lastSeenCur = Mathf.Clamp(stats.currentHealth, 0f, _lastSeenMax);
+
         stats.maxHealth = _lastSeenMax;
         stats.currentHealth = _lastSeenCur;
 
@@ -60,7 +66,8 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
-        if (invulnTimer > 0f) invulnTimer -= Time.deltaTime;
+        if (invulnTimer > 0f)
+            invulnTimer -= Time.deltaTime;
 
         float seenMax = Mathf.Max(1f, stats.maxHealth);
         float seenCur = Mathf.Clamp(stats.currentHealth, 0f, seenMax);
@@ -84,14 +91,30 @@ public class PlayerHealth : MonoBehaviour
 
     public float ApplyDamage(float rawAmount)
     {
+        return ApplyDamageFromSource(null, rawAmount);
+    }
+
+    public float ApplyDamageFromSource(GameObject damageSource, float rawAmount)
+    {
+        return ApplyDamageInternal(damageSource, rawAmount, false);
+    }
+
+    public float ApplyDamageDirectFromSource(GameObject damageSource, float rawAmount)
+    {
+        return ApplyDamageInternal(damageSource, rawAmount, true);
+    }
+
+    private float ApplyDamageInternal(GameObject damageSource, float rawAmount, bool ignoreNormalIFrames)
+    {
         if (rawAmount <= 0f) return 0f;
-        if (IsDead() || IsInvulnerable()) return 0f;
+        if (IsDead()) return 0f;
+
+        if (!ignoreNormalIFrames && IsInvulnerable())
+            return 0f;
 
         var pyroAbility = GetComponent<PyroAbility1>();
         if (pyroAbility != null && pyroAbility.IsInvulnerable())
-        {
             return 0f;
-        }
 
         if (GolemFireCircle.activeCircle != null && GolemFireCircle.activeCircle.currentShield > 0f)
         {
@@ -103,8 +126,16 @@ public class PlayerHealth : MonoBehaviour
         float final = afterFlat * (1f - Mathf.Clamp01(stats.damageReductionPercent));
         if (final <= 0f) return 0f;
 
+        final = ApplySourceElementDamage(damageSource, final);
+        if (final <= 0f) return 0f;
+
+        final = ApplyOwnElementIncomingDamage(damageSource, final);
+        if (final <= 0f) return 0f;
+
         stats.currentHealth = Mathf.Max(0f, stats.currentHealth - final);
-        invulnTimer = invulnDuration;
+
+        if (!ignoreNormalIFrames)
+            invulnTimer = invulnDuration;
 
         OnDamaged?.Invoke(final);
         Broadcast();
@@ -115,9 +146,90 @@ public class PlayerHealth : MonoBehaviour
         return final;
     }
 
+    private float ApplySourceElementDamage(GameObject damageSource, float damage)
+    {
+        ElementHolder holder = GetElementHolderFromSourceOrFallback(damageSource);
+
+        if (holder == null || !holder.HasElement())
+            return damage;
+
+        return holder.ModifyDirectDamage(gameObject, damage);
+    }
+
+    private float ApplyOwnElementIncomingDamage(GameObject damageSource, float damage)
+    {
+        ElementHolder ownHolder = GetComponent<ElementHolder>();
+
+        if (ownHolder == null)
+            ownHolder = GetComponentInParent<ElementHolder>();
+
+        if (ownHolder == null || !ownHolder.HasElement())
+            return damage;
+
+        return ownHolder.ModifyIncomingDirectDamage(damageSource, damage);
+    }
+
+    private ElementHolder GetElementHolderFromSourceOrFallback(GameObject damageSource)
+    {
+        if (damageSource != null)
+        {
+            ElementHolder sourceHolder = damageSource.GetComponent<ElementHolder>();
+
+            if (sourceHolder == null)
+                sourceHolder = damageSource.GetComponentInParent<ElementHolder>();
+
+            if (sourceHolder != null && sourceHolder.HasElement())
+                return sourceHolder;
+        }
+
+        if (!useNearestElementSourceWhenNoSource)
+            return null;
+
+        return FindNearestFallbackElementHolder();
+    }
+
+    private ElementHolder FindNearestFallbackElementHolder()
+    {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            transform.position,
+            Mathf.Max(0.1f, fallbackElementSearchRadius),
+            fallbackElementSourceLayers
+        );
+
+        ElementHolder bestHolder = null;
+        float bestDistSqr = float.MaxValue;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D hit = hits[i];
+            if (!hit) continue;
+
+            if (hit.transform == transform || hit.transform.IsChildOf(transform))
+                continue;
+
+            ElementHolder holder = hit.GetComponent<ElementHolder>();
+            if (holder == null)
+                holder = hit.GetComponentInParent<ElementHolder>();
+
+            if (holder == null || !holder.HasElement())
+                continue;
+
+            float distSqr = (holder.transform.position - transform.position).sqrMagnitude;
+
+            if (distSqr < bestDistSqr)
+            {
+                bestDistSqr = distSqr;
+                bestHolder = holder;
+            }
+        }
+
+        return bestHolder;
+    }
+
     public float Heal(float amount)
     {
         if (amount <= 0f || IsDead()) return 0f;
+
         float before = stats.currentHealth;
         stats.currentHealth = Mathf.Min(stats.currentHealth + amount, stats.maxHealth);
         float healed = stats.currentHealth - before;
@@ -127,6 +239,7 @@ public class PlayerHealth : MonoBehaviour
             OnHealed?.Invoke(healed);
             Broadcast();
         }
+
         return healed;
     }
 
@@ -139,6 +252,7 @@ public class PlayerHealth : MonoBehaviour
     public void AddMaxHealth(float delta)
     {
         if (Mathf.Approximately(delta, 0f)) return;
+
         float oldMax = Mathf.Max(1f, stats.maxHealth);
         float newMax = Mathf.Max(1f, oldMax + delta);
 
@@ -148,7 +262,17 @@ public class PlayerHealth : MonoBehaviour
 
     public bool IsDead() => stats.currentHealth <= 0f;
     public bool IsInvulnerable() => invulnTimer > 0f;
-    public float GetHealthNormalized() => stats.maxHealth > 0f ? stats.currentHealth / stats.maxHealth : 0f;
+
+    public float GetHealthNormalized()
+    {
+        return stats.maxHealth > 0f ? stats.currentHealth / stats.maxHealth : 0f;
+    }
+
+    public float GetHealthPercent()
+    {
+        if (stats == null || stats.maxHealth <= 0f) return 0f;
+        return Mathf.Clamp01(stats.currentHealth / stats.maxHealth);
+    }
 
     private void HandleExternalMaxChange(float oldMax, float newMax)
     {
@@ -169,24 +293,31 @@ public class PlayerHealth : MonoBehaviour
                 {
                     float pct = oldMax > 0f ? cur / oldMax : 1f;
                     float target = newMax * pct;
-                    if (keepPercentFavorUp && newMax > oldMax && target < cur) target = cur;
+
+                    if (keepPercentFavorUp && newMax > oldMax && target < cur)
+                        target = cur;
+
                     stats.maxHealth = newMax;
                     stats.currentHealth = Mathf.Clamp(target, 0f, newMax);
                     break;
                 }
+
             case MaxHpChangeMode.HealByDelta:
                 {
                     float delta = newMax - oldMax;
+
                     stats.maxHealth = newMax;
                     stats.currentHealth = Mathf.Clamp(cur + Mathf.Max(0f, delta), 0f, newMax);
                     break;
                 }
+
             case MaxHpChangeMode.FillToMax:
                 {
                     stats.maxHealth = newMax;
                     stats.currentHealth = newMax;
                     break;
                 }
+
             case MaxHpChangeMode.ClampOnly:
                 {
                     stats.maxHealth = newMax;
@@ -210,6 +341,7 @@ public class PlayerHealth : MonoBehaviour
             healthSlider.maxValue = stats.maxHealth;
             healthSlider.value = stats.currentHealth;
         }
+
         UpdateUI();
     }
 
@@ -219,13 +351,12 @@ public class PlayerHealth : MonoBehaviour
         {
             if (!Mathf.Approximately(healthSlider.maxValue, stats.maxHealth))
                 healthSlider.maxValue = stats.maxHealth;
+
             healthSlider.value = stats.currentHealth;
         }
 
         if (healthText != null)
-        {
             healthText.text = $"{Mathf.CeilToInt(stats.currentHealth)} / {Mathf.CeilToInt(stats.maxHealth)}";
-        }
     }
 
     private void Broadcast()
@@ -239,4 +370,15 @@ public class PlayerHealth : MonoBehaviour
         _lastSeenMax = stats.maxHealth;
         _lastSeenCur = stats.currentHealth;
     }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        if (!useNearestElementSourceWhenNoSource)
+            return;
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, fallbackElementSearchRadius);
+    }
+#endif
 }
