@@ -17,12 +17,23 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("When Max HP Changes (from buffs or edits)")]
     public MaxHpChangeMode maxHpChangeMode = MaxHpChangeMode.KeepPercent;
+
+    [Tooltip("With KeepPercent, don't reduce HP due to rounding when max increases.")]
     public bool keepPercentFavorUp = true;
 
     [Header("Element Damage")]
+    [Tooltip("If damage source is null, PlayerHealth will search nearby objects for an ElementHolder. This lets old enemy damage calls still use enemy elements.")]
     public bool useNearestElementSourceWhenNoSource = true;
+
+    [Tooltip("Radius used to find the enemy/source ElementHolder when ApplyDamage is called without a source.")]
     public float fallbackElementSearchRadius = 3f;
+
+    [Tooltip("Layers checked when searching for a fallback element source. Recommended: Enemy layer.")]
     public LayerMask fallbackElementSourceLayers = ~0;
+
+    [Header("Debug")]
+    [Tooltip("Prints healing info. Useful for testing Nature healing increase.")]
+    public bool showHealingDebug = false;
 
     [Header("Optional UI")]
     [SerializeField] private Slider healthSlider;
@@ -89,6 +100,10 @@ public class PlayerHealth : MonoBehaviour
         _lastSeenCur = stats.currentHealth;
     }
 
+    // =========================================================
+    // Damage API
+    // =========================================================
+
     public float ApplyDamage(float rawAmount)
     {
         return ApplyDamageFromSource(null, rawAmount);
@@ -124,11 +139,16 @@ public class PlayerHealth : MonoBehaviour
 
         float afterFlat = Mathf.Max(rawAmount - Mathf.Max(0f, stats.armor), 0f);
         float final = afterFlat * (1f - Mathf.Clamp01(stats.damageReductionPercent));
+
         if (final <= 0f) return 0f;
 
+        // Enemy/source element modifies damage dealt to the player.
+        // Example: enemy Fire burns player.
         final = ApplySourceElementDamage(damageSource, final);
         if (final <= 0f) return 0f;
 
+        // Player's own element modifies incoming damage.
+        // Example: Water reduces damage when low HP.
         final = ApplyOwnElementIncomingDamage(damageSource, final);
         if (final <= 0f) return 0f;
 
@@ -146,6 +166,60 @@ public class PlayerHealth : MonoBehaviour
         return final;
     }
 
+    // =========================================================
+    // Healing API
+    // =========================================================
+
+    public float Heal(float amount)
+    {
+        return HealFromSource(null, amount);
+    }
+
+    public float HealFromSource(GameObject healer, float amount)
+    {
+        if (amount <= 0f || IsDead()) return 0f;
+
+        float originalHealing = amount;
+
+        // IMPORTANT:
+        // Nature modifies healing BEFORE HP is restored.
+        // Example:
+        // 50 healing with Nature +200% becomes 150 healing.
+        float modifiedHealing = ApplyOwnElementHealingReceived(healer, amount);
+
+        if (modifiedHealing <= 0f)
+            return 0f;
+
+        float before = stats.currentHealth;
+
+        stats.currentHealth = Mathf.Min(stats.currentHealth + modifiedHealing, stats.maxHealth);
+
+        float actualHealed = stats.currentHealth - before;
+
+        if (showHealingDebug)
+        {
+            Debug.Log(
+                $"[PlayerHealth] Heal. " +
+                $"Original: {originalHealing:F1}, " +
+                $"Modified: {modifiedHealing:F1}, " +
+                $"Actual healed: {actualHealed:F1}, " +
+                $"HP: {before:F1} -> {stats.currentHealth:F1}"
+            );
+        }
+
+        if (actualHealed > 0f)
+        {
+            OnHealed?.Invoke(actualHealed);
+            Broadcast();
+        }
+
+        return actualHealed;
+    }
+
+    // =========================================================
+    // Element helpers
+    // =========================================================
+
     private float ApplySourceElementDamage(GameObject damageSource, float damage)
     {
         ElementHolder holder = GetElementHolderFromSourceOrFallback(damageSource);
@@ -158,15 +232,35 @@ public class PlayerHealth : MonoBehaviour
 
     private float ApplyOwnElementIncomingDamage(GameObject damageSource, float damage)
     {
-        ElementHolder ownHolder = GetComponent<ElementHolder>();
-
-        if (ownHolder == null)
-            ownHolder = GetComponentInParent<ElementHolder>();
+        ElementHolder ownHolder = GetOwnElementHolder();
 
         if (ownHolder == null || !ownHolder.HasElement())
             return damage;
 
         return ownHolder.ModifyIncomingDirectDamage(damageSource, damage);
+    }
+
+    private float ApplyOwnElementHealingReceived(GameObject healer, float healing)
+    {
+        ElementHolder ownHolder = GetOwnElementHolder();
+
+        if (ownHolder == null || !ownHolder.HasElement())
+            return healing;
+
+        return ownHolder.ModifyHealingReceived(healer, healing);
+    }
+
+    private ElementHolder GetOwnElementHolder()
+    {
+        ElementHolder ownHolder = GetComponent<ElementHolder>();
+
+        if (ownHolder == null)
+            ownHolder = GetComponentInParent<ElementHolder>();
+
+        if (ownHolder == null)
+            ownHolder = GetComponentInChildren<ElementHolder>();
+
+        return ownHolder;
     }
 
     private ElementHolder GetElementHolderFromSourceOrFallback(GameObject damageSource)
@@ -208,6 +302,7 @@ public class PlayerHealth : MonoBehaviour
                 continue;
 
             ElementHolder holder = hit.GetComponent<ElementHolder>();
+
             if (holder == null)
                 holder = hit.GetComponentInParent<ElementHolder>();
 
@@ -226,22 +321,9 @@ public class PlayerHealth : MonoBehaviour
         return bestHolder;
     }
 
-    public float Heal(float amount)
-    {
-        if (amount <= 0f || IsDead()) return 0f;
-
-        float before = stats.currentHealth;
-        stats.currentHealth = Mathf.Min(stats.currentHealth + amount, stats.maxHealth);
-        float healed = stats.currentHealth - before;
-
-        if (healed > 0f)
-        {
-            OnHealed?.Invoke(healed);
-            Broadcast();
-        }
-
-        return healed;
-    }
+    // =========================================================
+    // HP API
+    // =========================================================
 
     public void SetHealth(float value)
     {
@@ -260,8 +342,15 @@ public class PlayerHealth : MonoBehaviour
         Broadcast();
     }
 
-    public bool IsDead() => stats.currentHealth <= 0f;
-    public bool IsInvulnerable() => invulnTimer > 0f;
+    public bool IsDead()
+    {
+        return stats.currentHealth <= 0f;
+    }
+
+    public bool IsInvulnerable()
+    {
+        return invulnTimer > 0f;
+    }
 
     public float GetHealthNormalized()
     {
@@ -271,8 +360,23 @@ public class PlayerHealth : MonoBehaviour
     public float GetHealthPercent()
     {
         if (stats == null || stats.maxHealth <= 0f) return 0f;
+
         return Mathf.Clamp01(stats.currentHealth / stats.maxHealth);
     }
+
+    public float GetCurrentHealth()
+    {
+        return stats != null ? stats.currentHealth : 0f;
+    }
+
+    public float GetMaxHealth()
+    {
+        return stats != null ? stats.maxHealth : 0f;
+    }
+
+    // =========================================================
+    // Max HP handling
+    // =========================================================
 
     private void HandleExternalMaxChange(float oldMax, float newMax)
     {
@@ -327,6 +431,10 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    // =========================================================
+    // Death / UI
+    // =========================================================
+
     private void HandleDeath()
     {
         OnDeath?.Invoke();
@@ -356,7 +464,9 @@ public class PlayerHealth : MonoBehaviour
         }
 
         if (healthText != null)
+        {
             healthText.text = $"{Mathf.CeilToInt(stats.currentHealth)} / {Mathf.CeilToInt(stats.maxHealth)}";
+        }
     }
 
     private void Broadcast()

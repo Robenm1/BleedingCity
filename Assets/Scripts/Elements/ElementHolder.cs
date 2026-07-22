@@ -118,4 +118,12 @@ public class ElementHolder : MonoBehaviour
 
         return element.ModifyIncomingDirectDamage(gameObject, attacker, damage);
     }
+
+    public float ModifyHealingReceived(GameObject healer, float healing)
+    {
+        if (element == null)
+            return healing;
+
+        return element.ModifyHealingReceived(gameObject, healer, healing);
+    }
 }

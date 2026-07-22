@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class BuffManager : MonoBehaviour
 {
     private PlayerStats stats;
+    private PlayerHealth playerHealth;
 
     // Snapshot of original stats so values never drift
     private Baseline baseLine;
@@ -19,6 +20,9 @@ public class BuffManager : MonoBehaviour
     [Tooltip("Default KeepCurrent: raising MaxHP does NOT heal. Use Heal buff to restore HP.")]
     public MaxHpBuffPolicy maxHpPolicy = MaxHpBuffPolicy.KeepCurrent;
 
+    [Header("Debug")]
+    public bool showHealDebug = false;
+
     // Optional events for UI
     public System.Action<BuffData> OnBuffApplied;
     public System.Action<BuffData> OnBuffRemoved;
@@ -27,6 +31,13 @@ public class BuffManager : MonoBehaviour
     private void Awake()
     {
         stats = GetComponent<PlayerStats>();
+        playerHealth = GetComponent<PlayerHealth>();
+
+        if (playerHealth == null)
+            playerHealth = GetComponentInParent<PlayerHealth>();
+
+        if (playerHealth == null)
+            playerHealth = GetComponentInChildren<PlayerHealth>();
     }
 
     private void Start()
@@ -44,9 +55,11 @@ public class BuffManager : MonoBehaviour
         for (int i = active.Count - 1; i >= 0; i--)
         {
             var ab = active[i];
+
             if (ab.data.hasDuration)
             {
                 ab.timeLeft -= dt;
+
                 if (ab.timeLeft <= 0f)
                 {
                     if (ab.data.stackable && ab.stacks > 1)
@@ -61,6 +74,7 @@ public class BuffManager : MonoBehaviour
                         active.RemoveAt(i);
                         OnBuffRemoved?.Invoke(ab.data);
                     }
+
                     changed = true;
                 }
                 else
@@ -70,57 +84,46 @@ public class BuffManager : MonoBehaviour
             }
         }
 
-        if (changed) Recompute();
+        if (changed)
+            Recompute();
     }
 
     // ===== Public API =====
 
     public void ApplyBuff(BuffData data, int stacks = 1)
     {
-        if (data == null || stacks <= 0) return;
+        if (data == null || stacks <= 0)
+            return;
 
-        // 1) One-time HEAL processing (before adding, so non-duration buffs don't double-apply)
-        float totalHeal = 0f;
-        if (data.modifiers != null)
-        {
-            foreach (var m in data.modifiers)
-            {
-                if (m.stat != BuffData.Stat.Heal) continue;
+        // 1) One-time HEAL processing.
+        // IMPORTANT:
+        // Healing must go through PlayerHealth.Heal()
+        // so Nature Element can increase healing and store bonus damage.
+        float totalHeal = CalculateOneTimeHeal(data, stacks);
 
-                float healVal = 0f;
-                switch (m.op)
-                {
-                    case BuffData.Op.Flat:
-                        healVal = m.value * stacks;
-                        break;
-                    case BuffData.Op.PercentAdd:
-                        healVal = stats.maxHealth * (m.value * stacks);
-                        break;
-                    case BuffData.Op.PercentMult:
-                        // ambiguous for heal; ignore for safety
-                        break;
-                }
-                totalHeal += Mathf.Max(0f, healVal);
-            }
-        }
         if (totalHeal > 0f)
-            stats.currentHealth = Mathf.Min(stats.currentHealth + totalHeal, stats.maxHealth);
+        {
+            ApplyHealThroughPlayerHealth(totalHeal, data);
+        }
 
         // 2) Add/stack to active list
         int idx = active.FindIndex(b => b.data == data);
+
         if (idx >= 0)
         {
             var ab = active[idx];
+
             if (data.stackable)
             {
                 ab.stacks = Mathf.Min(data.maxStacks, ab.stacks + stacks);
                 ab.timeLeft = data.hasDuration ? data.duration : float.PositiveInfinity;
                 active[idx] = ab;
+
                 OnBuffStackChanged?.Invoke(data, ab.stacks);
             }
             else
             {
-                ab.timeLeft = data.hasDuration ? data.duration : float.PositiveInfinity; // refresh
+                ab.timeLeft = data.hasDuration ? data.duration : float.PositiveInfinity;
                 active[idx] = ab;
             }
         }
@@ -132,6 +135,7 @@ public class BuffManager : MonoBehaviour
                 stacks = Mathf.Max(1, stacks),
                 timeLeft = data.hasDuration ? data.duration : float.PositiveInfinity
             };
+
             active.Add(ab);
             OnBuffApplied?.Invoke(data);
         }
@@ -142,20 +146,27 @@ public class BuffManager : MonoBehaviour
     public void RemoveBuff(BuffData data)
     {
         int idx = active.FindIndex(b => b.data == data);
+
         if (idx >= 0)
         {
             var ab = active[idx];
+
             active.RemoveAt(idx);
             OnBuffRemoved?.Invoke(ab.data);
+
             Recompute();
         }
     }
 
-    public bool HasBuff(BuffData data) => active.Exists(b => b.data == data);
+    public bool HasBuff(BuffData data)
+    {
+        return active.Exists(b => b.data == data);
+    }
+
     public int GetStacks(BuffData data)
     {
         int idx = active.FindIndex(b => b.data == data);
-        return (idx >= 0) ? active[idx].stacks : 0;
+        return idx >= 0 ? active[idx].stacks : 0;
     }
 
     public void ClearAllBuffs(bool keepPersistent = false)
@@ -166,6 +177,87 @@ public class BuffManager : MonoBehaviour
             active.Clear();
 
         Recompute();
+    }
+
+    // ===== Heal handling =====
+
+    private float CalculateOneTimeHeal(BuffData data, int stacks)
+    {
+        float totalHeal = 0f;
+
+        if (data.modifiers == null)
+            return totalHeal;
+
+        foreach (var m in data.modifiers)
+        {
+            if (m.stat != BuffData.Stat.Heal)
+                continue;
+
+            float healVal = 0f;
+
+            switch (m.op)
+            {
+                case BuffData.Op.Flat:
+                    healVal = m.value * stacks;
+                    break;
+
+                case BuffData.Op.PercentAdd:
+                    healVal = stats.maxHealth * (m.value * stacks);
+                    break;
+
+                case BuffData.Op.PercentMult:
+                    // For healing, treat PercentMult as max HP percent too.
+                    // Example: 0.5 = heal 50% max HP.
+                    healVal = stats.maxHealth * (m.value * stacks);
+                    break;
+            }
+
+            totalHeal += Mathf.Max(0f, healVal);
+        }
+
+        return totalHeal;
+    }
+
+    private void ApplyHealThroughPlayerHealth(float totalHeal, BuffData sourceBuff)
+    {
+        if (playerHealth == null)
+        {
+            playerHealth = GetComponent<PlayerHealth>();
+
+            if (playerHealth == null)
+                playerHealth = GetComponentInParent<PlayerHealth>();
+
+            if (playerHealth == null)
+                playerHealth = GetComponentInChildren<PlayerHealth>();
+        }
+
+        if (playerHealth != null)
+        {
+            float actualHealed = playerHealth.Heal(totalHeal);
+
+            if (showHealDebug)
+            {
+                Debug.Log(
+                    $"[BuffManager] Heal buff '{sourceBuff.buffName}' used PlayerHealth.Heal(). " +
+                    $"Base heal: {totalHeal:F1}, Actual healed: {actualHealed:F1}"
+                );
+            }
+        }
+        else
+        {
+            // Emergency fallback only.
+            // Nature will NOT work through this fallback.
+            float before = stats.currentHealth;
+            stats.currentHealth = Mathf.Min(stats.currentHealth + totalHeal, stats.maxHealth);
+
+            if (showHealDebug)
+            {
+                Debug.LogWarning(
+                    $"[BuffManager] Heal buff '{sourceBuff.buffName}' used fallback direct healing. " +
+                    $"Nature will not modify this. HP: {before:F1} -> {stats.currentHealth:F1}"
+                );
+            }
+        }
     }
 
     // ===== Core recompute =====
@@ -181,21 +273,33 @@ public class BuffManager : MonoBehaviour
         {
             int s = Mathf.Max(1, ab.stacks);
             var mods = ab.data.modifiers;
-            if (mods == null) continue;
+
+            if (mods == null)
+                continue;
 
             for (int i = 0; i < mods.Length; i++)
             {
                 var m = mods[i];
 
                 // Heal handled on apply only
-                if (m.stat == BuffData.Stat.Heal) continue;
+                if (m.stat == BuffData.Stat.Heal)
+                    continue;
 
                 float v = m.value * s;
+
                 switch (m.op)
                 {
-                    case BuffData.Op.Flat: flat.Add(m.stat, v); break;
-                    case BuffData.Op.PercentAdd: pAdd.Add(m.stat, 1f + v); break;
-                    case BuffData.Op.PercentMult: pMul.Add(m.stat, v); break;
+                    case BuffData.Op.Flat:
+                        flat.Add(m.stat, v);
+                        break;
+
+                    case BuffData.Op.PercentAdd:
+                        pAdd.Add(m.stat, 1f + v);
+                        break;
+
+                    case BuffData.Op.PercentMult:
+                        pMul.Add(m.stat, v);
+                        break;
                 }
             }
         }
@@ -203,7 +307,7 @@ public class BuffManager : MonoBehaviour
         float Comb(BuffData.Stat st, float baseVal)
             => ((baseVal + flat.Get(st)) * pAdd.Get(st)) * pMul.Get(st);
 
-        // Write back to PlayerStats (no edits elsewhere)
+        // Write back to PlayerStats
         stats.moveSpeed = Comb(BuffData.Stat.MoveSpeed, baseLine.moveSpeed);
         stats.baseDamage = Comb(BuffData.Stat.BaseDamage, baseLine.baseDamage);
         stats.attackDelay = Mathf.Max(0.01f, Comb(BuffData.Stat.AttackDelay, baseLine.attackDelay));
@@ -253,16 +357,27 @@ public class BuffManager : MonoBehaviour
                     break;
             }
         }
+
+        stats.currentHealth = Mathf.Clamp(stats.currentHealth, 0f, stats.maxHealth);
     }
 
     // ===== Data holders =====
 
     private struct Baseline
     {
-        public float moveSpeed, baseDamage, attackDelay, pickupRange, maxHealth,
-                     armor, damageReductionPercent, cooldownMultiplier, speedMultiplier,
-                     dashSpeed, /*dashDuration,*/ dashCooldown,
-                     attackRange, projectileSpeed;
+        public float moveSpeed;
+        public float baseDamage;
+        public float attackDelay;
+        public float pickupRange;
+        public float maxHealth;
+        public float armor;
+        public float damageReductionPercent;
+        public float cooldownMultiplier;
+        public float speedMultiplier;
+        public float dashSpeed;
+        public float dashCooldown;
+        public float attackRange;
+        public float projectileSpeed;
 
         public Baseline(PlayerStats s)
         {
@@ -276,7 +391,6 @@ public class BuffManager : MonoBehaviour
             cooldownMultiplier = s.cooldownMultiplier;
             speedMultiplier = s.speedMultiplier;
             dashSpeed = s.dashSpeed;
-            // dashDuration intentionally not buffed
             dashCooldown = s.dashCooldown;
             attackRange = s.attackRange;
             projectileSpeed = s.projectileSpeed;
@@ -295,18 +409,25 @@ public class BuffManager : MonoBehaviour
         private readonly Dictionary<BuffData.Stat, float> map = new();
         private readonly float def;
 
-        public Acc(float def = 0f) { this.def = def; }
+        public Acc(float def = 0f)
+        {
+            this.def = def;
+        }
 
         public void Add(BuffData.Stat s, float v)
         {
-            if (map.TryGetValue(s, out float cur)) map[s] = cur + v;
-            else map[s] = def + v;
+            if (map.TryGetValue(s, out float cur))
+                map[s] = cur + v;
+            else
+                map[s] = def + v;
         }
 
         public float Get(BuffData.Stat s)
         {
-            if (map.TryGetValue(s, out float cur)) return cur;
-            return def == 0f ? 0f : 1f; // for pAdd/pMul default=1
+            if (map.TryGetValue(s, out float cur))
+                return cur;
+
+            return def == 0f ? 0f : 1f;
         }
     }
 }

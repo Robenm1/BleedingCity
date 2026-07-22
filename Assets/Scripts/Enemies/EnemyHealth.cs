@@ -5,7 +5,10 @@ using URandom = UnityEngine.Random;
 
 public class EnemyHealth : MonoBehaviour
 {
+    // ===== Global events =====
     public static event Action<EnemyHealth> OnAnyEnemyDied;
+
+    // Fires whenever any enemy successfully takes damage.
     public static event Action<EnemyHealth, float> OnAnyEnemyDamaged;
 
     [Serializable]
@@ -32,39 +35,73 @@ public class EnemyHealth : MonoBehaviour
     protected float currentHP;
 
     [Header("Element Resistance")]
+    [Tooltip("If enabled, this target can resist or be weak to specific source elements.")]
     public bool useElementResistance = true;
 
+    [Tooltip(
+        "Default resistance when the damage source has an element but no specific resistance is listed.\n" +
+        "0 = normal, 0.5 = takes 50% less, -0.5 = takes 50% more."
+    )]
     [Range(-2f, 1f)]
     public float defaultElementResistance = 0f;
 
+    [Tooltip("Specific resistance/weakness list against source elements.")]
     public ElementResistance[] elementResistances;
 
+    [Tooltip("Prints resistance calculation logs.")]
     public bool showElementResistanceDebug = false;
 
     [Header("XP Drop")]
+    [Tooltip("The coin prefab to drop on death. This prefab should have XPCoin.cs on it.")]
     public GameObject xpCoinPrefab;
+
+    [Tooltip("How many coins to drop on death.")]
     public int coinsToDrop = 1;
+
+    [Tooltip("Random drop scatter distance so coins don't all stack perfectly.")]
     public float dropScatterRadius = 0.3f;
 
     [Header("Damage Popup")]
+    [Tooltip("Prefab with TextMeshPro and DamagePopup.cs on it.")]
     public GameObject damagePopupPrefab;
+
+    [Tooltip("World-space offset above the enemy where popups spawn.")]
     public Vector3 popupOffset = new Vector3(0f, 0.8f, 0f);
+
+    [Tooltip("Popup color when the damage source has no ElementHolder or no element assigned.")]
     public Color defaultDamageColor = Color.white;
+
+    [Tooltip("Random horizontal spread for damage popup spawn.")]
     public float popupRandomXSpread = 0.2f;
 
     [Header("HP Bar UI")]
+    [Tooltip("Root RectTransform of the enemy HP UI. Can be the Slider parent.")]
     public RectTransform hpUIRoot;
+
+    [Tooltip("Slider that displays enemy HP from 0 to 1.")]
     public Slider hpSlider;
+
+    [Tooltip("How long the bar stays visible after taking damage.")]
     public float visibleForSecondsAfterHit = 2f;
+
+    [Tooltip("Vertical world offset for the bar above the enemy.")]
     public Vector3 worldOffset = new Vector3(0f, 1.2f, 0f);
+
+    [Tooltip("For Screen Space - Camera canvases, set the UI camera here. For Overlay you can leave null.")]
     public Camera uiCamera;
 
     [Header("Follow Smoothing")]
+    [Tooltip("Smooth the UI movement to avoid jitter when the enemy/camera moves.")]
     public bool smoothFollow = true;
+
+    [Tooltip("Time to reach the target UI position. 0.08 - 0.15 is a good range.")]
     [Range(0.01f, 0.3f)] public float followSmoothTime = 0.1f;
 
     private float hideTimer = 0f;
 
+    /// <summary>
+    /// When true the HP bar is never auto-hidden. Set by subclasses such as DummyHealth.
+    /// </summary>
     protected bool alwaysShowHPBar = false;
 
     private Canvas hpCanvas;
@@ -77,6 +114,7 @@ public class EnemyHealth : MonoBehaviour
 
     private static ElementHolder _cachedPlayerElementHolder;
 
+    // Temporary vulnerability support.
     protected float _vulnMul = 1f;
     private float _vulnTimer = 0f;
 
@@ -120,7 +158,9 @@ public class EnemyHealth : MonoBehaviour
             hideTimer -= Time.deltaTime;
 
             if (!alwaysShowHPBar && hideTimer <= 0f && Mathf.Approximately(currentHP, maxHP))
+            {
                 HideHPUIImmediate();
+            }
         }
     }
 
@@ -174,6 +214,8 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
+    // ===== Damage API =====
+
     public virtual void TakeSummonDamage(float dmg)
     {
         TakeSummonDamageFromSource(null, dmg);
@@ -211,15 +253,22 @@ public class EnemyHealth : MonoBehaviour
     {
         if (dmg <= 0f || currentHP <= 0f) return;
 
+        // Source element effect, like Fire burn, Rock stun, Nature bonus, Water scaling.
         dmg = ApplySourceElementDirectDamage(damageSource, dmg);
 
+        // Target resistance/weakness against source element.
         dmg = ApplyTargetElementResistance(damageSource, dmg);
 
+        // Target's own element incoming effect.
+        // Example: Water reduces incoming damage when low HP.
         dmg = ApplyOwnElementIncomingDamage(damageSource, dmg);
 
+        // Temporary vulnerability.
         dmg *= _vulnMul;
 
+        // Frosted vulnerability.
         var frosted = GetComponent<FrostedOnEnemy>();
+
         if (frosted != null && frosted.IsActive)
             dmg *= frosted.vulnerabilityMultiplier;
 
@@ -240,7 +289,9 @@ public class EnemyHealth : MonoBehaviour
         ShowHPUI();
 
         if (currentHP <= 0f)
+        {
             Die();
+        }
     }
 
     protected void NotifyEnemyDamaged(float damage)
@@ -249,6 +300,35 @@ public class EnemyHealth : MonoBehaviour
 
         OnAnyEnemyDamaged?.Invoke(this, damage);
     }
+
+    // ===== Healing API =====
+
+    public void Heal(float amount)
+    {
+        HealFromSource(null, amount);
+    }
+
+    public void HealFromSource(GameObject healer, float amount)
+    {
+        if (amount <= 0f || currentHP <= 0f) return;
+
+        float before = currentHP;
+
+        currentHP = Mathf.Min(currentHP + amount, maxHP);
+
+        float actualHealed = currentHP - before;
+
+        if (actualHealed > 0f)
+        {
+            // Nature uses the real healing received.
+            ApplyOwnElementHealingReceived(healer, actualHealed);
+
+            UpdateHPUI();
+            ShowHPUI();
+        }
+    }
+
+    // ===== Element helpers =====
 
     protected float ApplySourceElementDirectDamage(GameObject damageSource, float damage)
     {
@@ -342,19 +422,35 @@ public class EnemyHealth : MonoBehaviour
         return ownHolder.ModifyIncomingDirectDamage(damageSource, damage);
     }
 
+    protected float ApplyOwnElementHealingReceived(GameObject healer, float healing)
+    {
+        ElementHolder ownHolder = GetComponent<ElementHolder>();
+
+        if (ownHolder == null)
+            ownHolder = GetComponentInParent<ElementHolder>();
+
+        if (ownHolder == null || !ownHolder.HasElement())
+            return healing;
+
+        return ownHolder.ModifyHealingReceived(healer, healing);
+    }
+
     private bool ElementsMatch(BaseElementSO resistanceElement, BaseElementSO sourceElement)
     {
         if (resistanceElement == null || sourceElement == null)
             return false;
 
+        // Same exact ScriptableObject asset.
         if (resistanceElement == sourceElement)
             return true;
 
+        // Same element name.
         if (!string.IsNullOrEmpty(resistanceElement.elementName) &&
             !string.IsNullOrEmpty(sourceElement.elementName) &&
             resistanceElement.elementName == sourceElement.elementName)
             return true;
 
+        // Same element script type, example FireElementSO.
         if (resistanceElement.GetType() == sourceElement.GetType())
             return true;
 
@@ -373,6 +469,7 @@ public class EnemyHealth : MonoBehaviour
 
     protected ElementHolder GetElementHolderFromSourceOrFallback(GameObject damageSource)
     {
+        // 1. Try real damage source first.
         if (damageSource != null)
         {
             ElementHolder sourceHolder = damageSource.GetComponent<ElementHolder>();
@@ -384,6 +481,7 @@ public class EnemyHealth : MonoBehaviour
                 return sourceHolder;
         }
 
+        // 2. Fallback to player element for old player-owned damage calls.
         return GetPlayerElementHolderFallback();
     }
 
@@ -404,6 +502,8 @@ public class EnemyHealth : MonoBehaviour
 
         return _cachedPlayerElementHolder;
     }
+
+    // ===== UI / Internals =====
 
     private void InitHPUI()
     {
@@ -493,16 +593,6 @@ public class EnemyHealth : MonoBehaviour
 
             Instantiate(xpCoinPrefab, spawnPos, Quaternion.identity);
         }
-    }
-
-    public void Heal(float amount)
-    {
-        if (amount <= 0f || currentHP <= 0f) return;
-
-        currentHP = Mathf.Min(currentHP + amount, maxHP);
-
-        UpdateHPUI();
-        ShowHPUI();
     }
 
     public void ApplyVulnerability(float multiplier, float duration)

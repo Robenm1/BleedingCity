@@ -487,6 +487,7 @@ MonoBehaviour:
   fallbackElementSourceLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  showHealingDebug: 0
   healthSlider: {fileID: 7266356325758677685}
   healthText: {fileID: 0}
 --- !u!114 &5758882080159495574
@@ -502,6 +503,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuffManager
   maxHpPolicy: 0
+  showHealDebug: 0
 --- !u!114 &1911876108009863408
 MonoBehaviour:
   m_ObjectHideFlags: 0
