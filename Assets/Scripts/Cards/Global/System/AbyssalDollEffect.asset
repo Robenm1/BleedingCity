@@ -15,8 +15,8 @@ MonoBehaviour:
   activeCardIcon: {fileID: -378586642796001155, guid: 886fce31afa0c62478b3c1250f6ad5d4, type: 3}
   dollPrefab: {fileID: 8077920304735461365, guid: 398f23ae199ae934ebb12c017bddddba, type: 3}
   duration: 5
-  maxWaves: 10
-  cooldown: 8
+  maxWaves: 1000
+  cooldown: 15
   waveRadius: 12
   damageScaling: 1
   enemyLayers:

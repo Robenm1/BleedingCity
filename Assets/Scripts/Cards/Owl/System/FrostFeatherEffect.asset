@@ -12,6 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1feccd6326f18774f8f4429aac487d41, type: 3}
   m_Name: FrostFeatherEffect
   m_EditorClassIdentifier: Assembly-CSharp::FrostFeatherEffectSO
-  extraBounces: 3
-  bounceRadius: 3
+  maxBounces: 3
   chainDamageMultiplier: 1
+  visualSpeed: 24
+  bounceDelay: 0.03
+  bounceSearchRadius: 11.74
+  lineWidth: 2.25
+  minForwardDot: 0.25
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  stickBehindDistance: 0.45
+  stickSideOffset: 0.15
+  visualScale: 1
+  hideRealFeatherDuringJump: 0
+  hideRealLineRendererDuringJump: 1

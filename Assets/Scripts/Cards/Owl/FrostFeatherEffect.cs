@@ -1,106 +1,128 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Runtime enabler for the "Frost Feather" card:
-/// - Intercepts feather spawns from OwlFeatherShooter and adds FeatherChainOnHit to instances
-/// - Does NOT modify the prefab to avoid permanent changes
-/// </summary>
 [DisallowMultipleComponent]
 public class FrostFeatherEffect : MonoBehaviour
 {
-    [Header("Chain Settings (from SO)")]
-    [Tooltip("Maximum number of bounces after the first impact (3 = hits 4 enemies total).")]
+    [Header("Chain Settings")]
+    [Tooltip("Maximum targets total, including the first enemy hit. 3 = hits max 3 enemies total.")]
     public int maxBounces = 3;
 
-    [Tooltip("Damage multiplier applied to each chain hit relative to PlayerStats.GetDamage(). 1 = base damage.")]
+    [Tooltip("Damage multiplier applied to each chain hit relative to PlayerStats.GetDamage().")]
     public float chainDamageMultiplier = 1.0f;
 
-    private bool _isActive = false;
-    private readonly List<OwlFeatherShooter> _trackedShooters = new List<OwlFeatherShooter>();
+    [Header("Straight Bounce")]
+    [Tooltip("How fast the feather visual moves between enemies.")]
+    public float visualSpeed = 24f;
 
-    /// <summary>Call from SO.Apply().</summary>
+    [Tooltip("Small delay between bounces.")]
+    public float bounceDelay = 0.03f;
+
+    [Tooltip("Maximum distance from one enemy to the next. Prevents across-map jumps.")]
+    public float bounceSearchRadius = 6f;
+
+    [Tooltip("The feather only jumps forward inside this corridor.")]
+    public float lineWidth = 2.25f;
+
+    [Tooltip("Higher = stricter forward direction. Good values: 0.25 to 0.45.")]
+    [Range(-1f, 1f)]
+    public float minForwardDot = 0.25f;
+
+    [Tooltip("Enemy layers used by the ricochet search.")]
+    public LayerMask enemyLayers;
+
+    [Header("Final Stick Position")]
+    [Tooltip("How far behind the last enemy the real feather sticks.")]
+    public float stickBehindDistance = 0.45f;
+
+    [Tooltip("Small side offset so the feather does not hide perfectly under the enemy.")]
+    public float stickSideOffset = 0.15f;
+
+    [Header("Visual")]
+    [Tooltip("Keep this at 1 for normal feather size.")]
+    public float visualScale = 1f;
+
+    [Tooltip("Hide the real feather renderers while the visual copy jumps.")]
+    public bool hideRealFeatherDuringJump = true;
+
+    [Tooltip("Hide the original LineRenderer too while bouncing.")]
+    public bool hideRealLineRendererDuringJump = true;
+
+    [Header("Performance")]
+    [Tooltip("How often the effect checks for newly spawned feathers.")]
+    public float scanInterval = 0.12f;
+
+    private bool _isActive;
+    private float _scanTimer;
+
     public void EnableEffect()
     {
         _isActive = true;
-        StartCoroutine(TrackShootersRoutine());
+        _scanTimer = 0f;
     }
 
-    /// <summary>Optional if you later add SO.Remove().</summary>
     public void DisableEffect()
     {
         _isActive = false;
-        UnsubscribeFromAllShooters();
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        UnsubscribeFromAllShooters();
-    }
-
-    private IEnumerator TrackShootersRoutine()
-    {
-        var shooters = new List<OwlFeatherShooter>();
-        while (_isActive)
-        {
-            shooters.Clear();
-            GetComponentsInChildren(true, shooters); // player + clone(s)
-
-            // Subscribe to any new shooters
-            foreach (var shooter in shooters)
-            {
-                if (shooter != null && !_trackedShooters.Contains(shooter))
-                {
-                    SubscribeToShooter(shooter);
-                }
-            }
-
-            // Clean up null references
-            _trackedShooters.RemoveAll(s => s == null);
-
-            yield return new WaitForSeconds(0.5f);
-        }
-    }
-
-    private void SubscribeToShooter(OwlFeatherShooter shooter)
-    {
-        _trackedShooters.Add(shooter);
-        // Hook into the shooter's spawn event if it has one
-        // If your OwlFeatherShooter doesn't have events, we'll need another approach
-        // For now, we'll use a different method - see below
-    }
-
-    private void UnsubscribeFromAllShooters()
-    {
-        _trackedShooters.Clear();
+        DisableEffect();
     }
 
     private void Update()
     {
-        if (!_isActive) return;
+        if (!_isActive)
+            return;
 
-        // Find all feathers in the scene that don't have the chain component yet
-        var allFeathers = FindObjectsOfType<SnowOwlFeather>();
-        foreach (var feather in allFeathers)
+        _scanTimer -= Time.deltaTime;
+
+        if (_scanTimer > 0f)
+            return;
+
+        _scanTimer = Mathf.Max(0.02f, scanInterval);
+        PatchNewFeathers();
+    }
+
+    private void PatchNewFeathers()
+    {
+        SnowOwlFeather[] feathers = FindObjectsOfType<SnowOwlFeather>();
+
+        for (int i = 0; i < feathers.Length; i++)
         {
-            if (feather == null) continue;
+            SnowOwlFeather feather = feathers[i];
 
-            // Only add to instances, not prefabs
-            if (feather.gameObject.scene.name == null) continue;
+            if (feather == null)
+                continue;
 
-            var chain = feather.GetComponent<FeatherChainOnHit>();
+            if (!feather.gameObject.scene.IsValid())
+                continue;
+
+            FeatherChainOnHit chain = feather.GetComponent<FeatherChainOnHit>();
+
             if (chain == null)
-            {
-                // This is a newly spawned feather - add the chain component
                 chain = feather.gameObject.AddComponent<FeatherChainOnHit>();
-                chain.maxBounces = Mathf.Max(0, maxBounces);
-                chain.damageMultiplier = Mathf.Max(0f, chainDamageMultiplier);
 
-                // Ensure owner link exists
-                var ownerLink = feather.GetComponent<FeatherOwnerLink>();
-                if (!ownerLink) ownerLink = feather.gameObject.AddComponent<FeatherOwnerLink>();
-            }
+            chain.owner = gameObject;
+
+            chain.maxBounces = Mathf.Clamp(maxBounces, 1, 3);
+            chain.damageMultiplier = Mathf.Max(0f, chainDamageMultiplier);
+
+            chain.bounceDelay = Mathf.Max(0f, bounceDelay);
+            chain.bounceSearchRadius = Mathf.Max(0.1f, bounceSearchRadius);
+            chain.enemyLayers = enemyLayers;
+
+            chain.lineWidth = Mathf.Max(0.1f, lineWidth);
+            chain.minForwardDot = Mathf.Clamp(minForwardDot, -1f, 1f);
+
+            chain.visualSpeed = Mathf.Max(0.1f, visualSpeed);
+            chain.visualScale = Mathf.Max(0.01f, visualScale);
+
+            chain.stickBehindDistance = Mathf.Max(0f, stickBehindDistance);
+            chain.stickSideOffset = Mathf.Max(0f, stickSideOffset);
+
+            chain.hideRealFeatherDuringJump = hideRealFeatherDuringJump;
+            chain.hideRealLineRendererDuringJump = hideRealLineRendererDuringJump;
         }
     }
 }
