@@ -3,6 +3,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "AbyssalDollEffect", menuName = "Game/Cards/Effects/Global/Abyssal Doll")]
 public class AbyssalDollEffectSO : CardEffectSO
 {
+    [Header("Active Card HUD")]
+    [Tooltip("Icon shown in the in-game active card UI.")]
+    public Sprite activeCardIcon;
+
     [Header("Abyssal Doll")]
     [Tooltip("The Abyssal Doll prefab dropped by the player.")]
     public GameObject dollPrefab;
@@ -62,6 +66,6 @@ public class AbyssalDollEffectSO : CardEffectSO
         var router = player.GetComponent<ActiveCardInputRouter>();
         if (!router) router = player.AddComponent<ActiveCardInputRouter>();
 
-        router.RegisterFirstFree(effect);
+        router.RegisterFirstFree(effect, activeCardIcon, Mathf.Max(0.01f, cooldown));
     }
 }

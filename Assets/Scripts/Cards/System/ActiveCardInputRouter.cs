@@ -10,16 +10,34 @@ public class ActiveCardInputRouter : MonoBehaviour
         Active2
     }
 
-    [Header("Runtime Active Cards")]
-    [Tooltip("The active card assigned to Active1.")]
-    [SerializeField] private MonoBehaviour active1Effect;
+    [System.Serializable]
+    public class ActiveCardRuntimeData
+    {
+        [Header("Runtime Effect")]
+        public MonoBehaviour effect;
 
-    [Tooltip("The active card assigned to Active2.")]
-    [SerializeField] private MonoBehaviour active2Effect;
+        [Header("UI Data")]
+        public Sprite cardIcon;
+        public float cooldown = 5f;
+    }
+
+    [Header("Runtime Active Cards")]
+    [Tooltip("Active1 = E button UI slot.")]
+    [SerializeField] private ActiveCardRuntimeData active1 = new ActiveCardRuntimeData();
+
+    [Tooltip("Active2 = Q button UI slot.")]
+    [SerializeField] private ActiveCardRuntimeData active2 = new ActiveCardRuntimeData();
+
+    [Header("HUD")]
+    [Tooltip("If empty, the router will search in children.")]
+    [SerializeField] private ActiveCardHUD activeCardHUD;
 
     [Header("Input")]
-    [Tooltip("If true, the router reads Active1/Active2 directly from PlayerControls every frame.")]
     public bool pollInputDirectly = true;
+
+    [Header("Cooldown")]
+    [Tooltip("Normal active cards start HUD cooldown immediately. Manual cards like Abyssal Doll control it themselves.")]
+    public bool startHudCooldownOnActivate = true;
 
     [Header("Debug")]
     public bool showDebug = true;
@@ -29,16 +47,26 @@ public class ActiveCardInputRouter : MonoBehaviour
     private void Awake()
     {
         _controls = GetComponent<PlayerControls>();
+
+        if (activeCardHUD == null)
+            activeCardHUD = GetComponentInChildren<ActiveCardHUD>();
+    }
+
+    private void Start()
+    {
+        RefreshHUD();
     }
 
     private void Update()
     {
-        if (!pollInputDirectly) return;
+        if (!pollInputDirectly)
+            return;
 
         if (!_controls)
             _controls = GetComponent<PlayerControls>();
 
-        if (!_controls) return;
+        if (!_controls)
+            return;
 
         if (_controls.Active1 != null &&
             _controls.Active1.action != null &&
@@ -55,17 +83,21 @@ public class ActiveCardInputRouter : MonoBehaviour
         }
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────
-
     public bool RegisterFirstFree(MonoBehaviour effect)
     {
-        if (!IsValidActiveEffect(effect)) return false;
+        return RegisterFirstFree(effect, null, 5f);
+    }
 
-        if (active1Effect == null)
-            return RegisterToSlot(effect, ActiveSlot.Active1);
+    public bool RegisterFirstFree(MonoBehaviour effect, Sprite cardIcon, float cooldown)
+    {
+        if (!IsValidActiveEffect(effect))
+            return false;
 
-        if (active2Effect == null)
-            return RegisterToSlot(effect, ActiveSlot.Active2);
+        if (active1.effect == null)
+            return RegisterToSlot(effect, ActiveSlot.Active1, cardIcon, cooldown);
+
+        if (active2.effect == null)
+            return RegisterToSlot(effect, ActiveSlot.Active2, cardIcon, cooldown);
 
         if (showDebug)
             Debug.LogWarning($"[ActiveCardInputRouter] Both active slots are full. Could not register {effect.GetType().Name}.");
@@ -75,58 +107,87 @@ public class ActiveCardInputRouter : MonoBehaviour
 
     public bool RegisterToSlot(MonoBehaviour effect, ActiveSlot slot)
     {
-        if (!IsValidActiveEffect(effect)) return false;
+        return RegisterToSlot(effect, slot, null, 5f);
+    }
 
-        if (slot == ActiveSlot.Active1)
-        {
-            active1Effect = effect;
+    public bool RegisterToSlot(MonoBehaviour effect, ActiveSlot slot, Sprite cardIcon, float cooldown)
+    {
+        if (!IsValidActiveEffect(effect))
+            return false;
 
-            if (showDebug)
-                Debug.Log($"[ActiveCardInputRouter] Registered {effect.GetType().Name} to Active1.");
+        ActiveCardRuntimeData data = GetSlotData(slot);
 
-            return true;
-        }
+        data.effect = effect;
+        data.cardIcon = cardIcon;
+        data.cooldown = Mathf.Max(0.01f, cooldown);
 
-        active2Effect = effect;
+        CacheHUD();
+
+        if (effect is IActiveCardHUDReceiver receiver)
+            receiver.SetActiveCardHUD(activeCardHUD, slot);
+
+        UpdateHUDSlot(slot);
 
         if (showDebug)
-            Debug.Log($"[ActiveCardInputRouter] Registered {effect.GetType().Name} to Active2.");
+        {
+            Debug.Log(
+                $"[ActiveCardInputRouter] Registered {effect.GetType().Name} to {slot}. " +
+                $"Icon: {(cardIcon != null ? cardIcon.name : "None")}, Cooldown: {data.cooldown:F1}"
+            );
+        }
 
         return true;
     }
 
     public void ClearSlot(ActiveSlot slot)
     {
-        if (slot == ActiveSlot.Active1)
-            active1Effect = null;
-        else
-            active2Effect = null;
+        ActiveCardRuntimeData data = GetSlotData(slot);
+
+        data.effect = null;
+        data.cardIcon = null;
+        data.cooldown = 0f;
+
+        CacheHUD();
+
+        if (activeCardHUD != null)
+        {
+            if (slot == ActiveSlot.Active1)
+                activeCardHUD.ClearActiveCard1();
+            else
+                activeCardHUD.ClearActiveCard2();
+        }
     }
 
     public void ClearAll()
     {
-        active1Effect = null;
-        active2Effect = null;
+        ClearSlot(ActiveSlot.Active1);
+        ClearSlot(ActiveSlot.Active2);
     }
 
-    // ── Activation ─────────────────────────────────────────────────────────
+    public void RefreshHUD()
+    {
+        UpdateHUDSlot(ActiveSlot.Active1);
+        UpdateHUDSlot(ActiveSlot.Active2);
+    }
 
     private void ActivateSlot1()
     {
-        ActivateEffect(active1Effect, "Active1");
+        ActivateEffect(active1, ActiveSlot.Active1);
     }
 
     private void ActivateSlot2()
     {
-        ActivateEffect(active2Effect, "Active2");
+        ActivateEffect(active2, ActiveSlot.Active2);
     }
 
-    private void ActivateEffect(MonoBehaviour effect, string slotName)
+    private void ActivateEffect(ActiveCardRuntimeData data, ActiveSlot slot)
     {
+        string slotName = slot == ActiveSlot.Active1 ? "Active1 / E" : "Active2 / Q";
+
         if (showDebug)
             Debug.Log($"[ActiveCardInputRouter] {slotName} pressed.");
 
-        if (effect == null)
+        if (data == null || data.effect == null)
         {
             if (showDebug)
                 Debug.Log($"[ActiveCardInputRouter] {slotName} has no active card assigned.");
@@ -134,17 +195,115 @@ public class ActiveCardInputRouter : MonoBehaviour
             return;
         }
 
-        if (effect is IActiveCardEffect activeEffect)
+        if (data.effect is not IActiveCardEffect activeEffect)
         {
-            activeEffect.Activate();
+            Debug.LogWarning($"[ActiveCardInputRouter] {data.effect.GetType().Name} does not implement IActiveCardEffect.");
+            return;
+        }
 
-            if (showDebug)
-                Debug.Log($"[ActiveCardInputRouter] Activated {effect.GetType().Name} from {slotName}.");
+        activeEffect.Activate();
+
+        bool manualCooldown =
+            data.effect is IManualActiveCardCooldown manual &&
+            manual.UsesManualCooldown;
+
+        // Important:
+        // Abyssal Doll is manual, so the router must NOT start/reset HUD cooldown.
+        if (startHudCooldownOnActivate && !manualCooldown)
+            StartHUDCooldown(slot, data.cooldown);
+
+        if (showDebug)
+            Debug.Log($"[ActiveCardInputRouter] Activated {data.effect.GetType().Name} from {slotName}.");
+    }
+
+    public void StartCooldownForEffect(MonoBehaviour effect, float cooldown)
+    {
+        if (effect == null)
+            return;
+
+        if (active1 != null && active1.effect == effect)
+        {
+            StartHUDCooldown(ActiveSlot.Active1, cooldown);
+            return;
+        }
+
+        if (active2 != null && active2.effect == effect)
+        {
+            StartHUDCooldown(ActiveSlot.Active2, cooldown);
+            return;
+        }
+    }
+
+    public void SetBusyForEffect(MonoBehaviour effect, bool busy)
+    {
+        if (effect == null)
+            return;
+
+        CacheHUD();
+
+        if (activeCardHUD == null)
+            return;
+
+        if (active1 != null && active1.effect == effect)
+        {
+            activeCardHUD.SetActiveCard1Busy(busy);
+            return;
+        }
+
+        if (active2 != null && active2.effect == effect)
+        {
+            activeCardHUD.SetActiveCard2Busy(busy);
+            return;
+        }
+    }
+
+    private void UpdateHUDSlot(ActiveSlot slot)
+    {
+        CacheHUD();
+
+        if (activeCardHUD == null)
+            return;
+
+        ActiveCardRuntimeData data = GetSlotData(slot);
+
+        if (data == null || data.effect == null || data.cardIcon == null)
+        {
+            if (slot == ActiveSlot.Active1)
+                activeCardHUD.ClearActiveCard1();
+            else
+                activeCardHUD.ClearActiveCard2();
 
             return;
         }
 
-        Debug.LogWarning($"[ActiveCardInputRouter] {effect.GetType().Name} does not implement IActiveCardEffect.");
+        if (slot == ActiveSlot.Active1)
+            activeCardHUD.AssignActiveCard1(data.cardIcon, data.cooldown);
+        else
+            activeCardHUD.AssignActiveCard2(data.cardIcon, data.cooldown);
+    }
+
+    private void StartHUDCooldown(ActiveSlot slot, float cooldown)
+    {
+        CacheHUD();
+
+        if (activeCardHUD == null)
+            return;
+
+        if (slot == ActiveSlot.Active1)
+            activeCardHUD.StartCooldownActive1(cooldown);
+        else
+            activeCardHUD.StartCooldownActive2(cooldown);
+    }
+
+    private void CacheHUD()
+    {
+        if (activeCardHUD == null)
+            activeCardHUD = GetComponentInChildren<ActiveCardHUD>();
+    }
+
+    private ActiveCardRuntimeData GetSlotData(ActiveSlot slot)
+    {
+        return slot == ActiveSlot.Active1 ? active1 : active2;
     }
 
     private bool IsValidActiveEffect(MonoBehaviour effect)

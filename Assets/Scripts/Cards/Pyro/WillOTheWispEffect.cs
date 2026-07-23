@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
+public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect, IManualActiveCardCooldown, IActiveCardHUDReceiver
 {
+    public bool UsesManualCooldown => true;
+
     [Header("Wisp Gain")]
     [Tooltip("How many enemy kills are needed to gain 1 wisp.")]
     public int killsPerWisp = 3;
@@ -70,16 +72,22 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
     private Coroutine _fireRoutine;
 
+    private ActiveCardHUD _hud;
+    private ActiveCardInputRouter.ActiveSlot _slot;
+
     private readonly List<GameObject> _storedWispObjects = new List<GameObject>();
     private readonly List<Vector2> _wispBaseOffsets = new List<Vector2>();
     private readonly List<float> _wispSeeds = new List<float>();
 
     private void OnEnable()
     {
-        if (_registered) return;
+        if (!_registered)
+        {
+            EnemyHealth.OnAnyEnemyDied += OnAnyEnemyDied;
+            _registered = true;
+        }
 
-        EnemyHealth.OnAnyEnemyDied += OnAnyEnemyDied;
-        _registered = true;
+        UpdateWispHUD();
     }
 
     private void OnDisable()
@@ -98,11 +106,26 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
         _killCounter = 0;
         _currentWisps = 0;
         _registered = false;
+
+        UpdateWispHUD();
+    }
+
+    private void Start()
+    {
+        UpdateWispHUD();
     }
 
     private void Update()
     {
         UpdateStoredWispVisuals();
+    }
+
+    public void SetActiveCardHUD(ActiveCardHUD hud, ActiveCardInputRouter.ActiveSlot slot)
+    {
+        _hud = hud;
+        _slot = slot;
+
+        UpdateWispHUD();
     }
 
     // Called by ActiveCardInputRouter.
@@ -113,8 +136,11 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
     private void OnAnyEnemyDied(EnemyHealth enemy)
     {
-        if (enemy == null) return;
-        if (_currentWisps >= Mathf.Max(1, maxWisps)) return;
+        if (enemy == null)
+            return;
+
+        if (_currentWisps >= Mathf.Max(1, maxWisps))
+            return;
 
         _killCounter++;
 
@@ -128,10 +154,14 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
     private void AddWisp()
     {
         int cappedMax = Mathf.Max(1, maxWisps);
-        if (_currentWisps >= cappedMax) return;
 
-        _currentWisps++;
+        if (_currentWisps >= cappedMax)
+            return;
+
+        _currentWisps = Mathf.Clamp(_currentWisps + 1, 0, cappedMax);
+
         CreateStoredWispVisual(_currentWisps - 1);
+        UpdateWispHUD();
 
         if (showDebug)
             Debug.Log($"[WillOTheWispEffect] Gained wisp. Current wisps: {_currentWisps}/{cappedMax}");
@@ -152,10 +182,12 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
             if (showDebug)
                 Debug.Log("[WillOTheWispEffect] No wisps to fire.");
 
+            UpdateWispHUD();
             return;
         }
 
         EnemyHealth target = FindNearestEnemy();
+
         if (target == null)
         {
             if (showDebug)
@@ -172,12 +204,15 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
         int wispsToFire = _currentWisps;
 
         Sprite[] spritesToFire = new Sprite[wispsToFire];
+
         for (int i = 0; i < wispsToFire; i++)
             spritesToFire[i] = GetSpriteForIndex(i);
 
         _currentWisps = 0;
         _killCounter = 0;
+
         ClearStoredWispVisuals();
+        UpdateWispHUD();
 
         if (showDebug)
             Debug.Log($"[WillOTheWispEffect] Firing {wispsToFire} wisps one by one.");
@@ -203,6 +238,19 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
         _fireRoutine = null;
     }
 
+    private void UpdateWispHUD()
+    {
+        if (_hud == null)
+            return;
+
+        int shownWisps = Mathf.Clamp(_currentWisps, 0, 3);
+
+        if (_slot == ActiveCardInputRouter.ActiveSlot.Active1)
+            _hud.SetActiveCard1Counter(shownWisps);
+        else
+            _hud.SetActiveCard2Counter(shownWisps);
+    }
+
     private EnemyHealth FindNearestEnemy()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(
@@ -216,11 +264,16 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
         foreach (var hit in hits)
         {
-            if (hit == null) continue;
+            if (hit == null)
+                continue;
 
             var enemy = hit.GetComponent<EnemyHealth>();
-            if (enemy == null) enemy = hit.GetComponentInParent<EnemyHealth>();
-            if (enemy == null) continue;
+
+            if (enemy == null)
+                enemy = hit.GetComponentInParent<EnemyHealth>();
+
+            if (enemy == null)
+                continue;
 
             float distSqr = ((Vector2)enemy.transform.position - (Vector2)transform.position).sqrMagnitude;
 
@@ -258,7 +311,8 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
     private Vector3 GetLaunchOffset(int index, int total)
     {
-        if (total <= 1) return Vector3.zero;
+        if (total <= 1)
+            return Vector3.zero;
 
         float center = (total - 1) * 0.5f;
         float sideOffset = (index - center) * Mathf.Max(0f, launchSpread);
@@ -296,14 +350,16 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
     private void UpdateStoredWispVisuals()
     {
-        if (_storedWispObjects.Count <= 0) return;
+        if (_storedWispObjects.Count <= 0)
+            return;
 
         float radius = Mathf.Max(0f, floatRadius);
         float speed = Mathf.Max(0f, floatSpeed);
 
         for (int i = 0; i < _storedWispObjects.Count; i++)
         {
-            if (_storedWispObjects[i] == null) continue;
+            if (_storedWispObjects[i] == null)
+                continue;
 
             float seed = i < _wispSeeds.Count ? _wispSeeds[i] : 0f;
             Vector2 baseOffset = i < _wispBaseOffsets.Count ? _wispBaseOffsets[i] : Vector2.zero;
@@ -326,7 +382,8 @@ public class WillOTheWispEffect : MonoBehaviour, IActiveCardEffect
 
     private Sprite GetSpriteForIndex(int index)
     {
-        if (wispSprites == null || wispSprites.Length == 0) return null;
+        if (wispSprites == null || wispSprites.Length == 0)
+            return null;
 
         int safeIndex = Mathf.Clamp(index, 0, wispSprites.Length - 1);
         return wispSprites[safeIndex];

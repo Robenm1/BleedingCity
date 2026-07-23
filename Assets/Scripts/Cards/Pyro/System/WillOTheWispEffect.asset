@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5268e825d2d1c7d48b8b49bd08012212, type: 3}
   m_Name: WillOTheWispEffect
   m_EditorClassIdentifier: Assembly-CSharp::WillOTheWispEffectSO
+  activeCardIcon: {fileID: 4869378548357180305, guid: 070a2b71469d52141a1726d699602015, type: 3}
+  cooldown: 3
   killsPerWisp: 3
   maxWisps: 3
   targetMaxHpDamagePercent: 0.05
@@ -29,6 +31,8 @@ MonoBehaviour:
   floatRadius: 2.19
   floatSpeed: 2
   bobAmount: 0.12
+  fireInterval: 0.12
+  launchSpread: 0.18
   bobSpeed: 3
   fadeInDuration: 0.35
   sortingOrder: 5

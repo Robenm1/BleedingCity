@@ -532,9 +532,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0da44b9f57bbc104f86d5c8d1aeb871b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
-  active1Effect: {fileID: 0}
-  active2Effect: {fileID: 0}
+  active1:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  active2:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  activeCardHUD: {fileID: 0}
   pollInputDirectly: 1
+  startHudCooldownOnActivate: 1
   showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
@@ -2391,6 +2399,10 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3754234011456746064, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 8646717646888852605, guid: 8200779c7649abe4c86a4e90d1356c2d, type: 3}
     - target: {fileID: 4931850645396927492, guid: defc12888f843d842ad20d53bc51f7d0, type: 3}
       propertyPath: m_Pivot.x
       value: 0

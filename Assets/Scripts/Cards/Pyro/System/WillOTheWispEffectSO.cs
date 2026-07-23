@@ -3,6 +3,13 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "WillOTheWispEffect", menuName = "Game/Cards/Effects/Pyro/Will-o'-the-wisp")]
 public class WillOTheWispEffectSO : CardEffectSO
 {
+    [Header("Active Card HUD")]
+    [Tooltip("Icon shown in the in-game active card UI.")]
+    public Sprite activeCardIcon;
+
+    [Tooltip("Cooldown shown in the in-game active card UI.")]
+    public float cooldown = 3f;
+
     [Header("Wisp Gain")]
     [Tooltip("How many enemy kills are needed to gain 1 wisp.")]
     public int killsPerWisp = 3;
@@ -87,13 +94,11 @@ public class WillOTheWispEffectSO : CardEffectSO
         effect.sortingOrder = sortingOrder;
 
         effect.showDebug = showDebug;
-
         effect.enabled = true;
 
         var router = player.GetComponent<ActiveCardInputRouter>();
         if (!router) router = player.AddComponent<ActiveCardInputRouter>();
 
-        router.RegisterFirstFree(effect);
-
+        router.RegisterFirstFree(effect, activeCardIcon, Mathf.Max(0.01f, cooldown));
     }
 }

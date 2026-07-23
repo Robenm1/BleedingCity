@@ -563,9 +563,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0da44b9f57bbc104f86d5c8d1aeb871b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
-  active1Effect: {fileID: 0}
-  active2Effect: {fileID: 0}
+  active1:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  active2:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  activeCardHUD: {fileID: 0}
   pollInputDirectly: 1
+  startHudCooldownOnActivate: 1
   showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
