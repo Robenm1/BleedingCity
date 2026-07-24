@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 6849275854092906215}
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
+  - component: {fileID: -8362450423595525163}
   - component: {fileID: 6887383513217915165}
   - component: {fileID: 8593381778966886581}
   - component: {fileID: 4641778687578412701}
@@ -162,6 +163,39 @@ MonoBehaviour:
   m_DefaultActionMap: 
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &-8362450423595525163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cafff6ef86128a4e99773919026ee26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityHUDData
+  ability1Variants:
+  - variantName: Blazing Rush
+    icon: {fileID: 8216274918565302585, guid: fc883a77922a35c4cbf03f6cd678e926, type: 3}
+    cooldown: 8
+  - variantName: Dual Barrage
+    icon: {fileID: 4631397335779381047, guid: 87c1851d427e0f54fa61e47eb3beead2, type: 3}
+    cooldown: 8
+  - variantName: Alpha Strike
+    icon: {fileID: -6952143830146158096, guid: 20f395ce943ceca4abc3726859e01fc2, type: 3}
+    cooldown: 8
+  - variantName: Protective Circle
+    icon: {fileID: -4412394586656157030, guid: 12d538940505941409ea1443c23ad1f6, type: 3}
+    cooldown: 8
+  ability2Variants:
+  - variantName: Hell Bomb
+    icon: {fileID: -2574704356718706350, guid: 9802109a3a4fcd8479a4e69b8be406b6, type: 3}
+    cooldown: 6
+  startingAbility1Variant: 0
+  startingAbility2Variant: 0
+  ability1FollowsSummonLevel: 1
+  ability2FollowsSummonLevel: 0
 --- !u!114 &6887383513217915165
 MonoBehaviour:
   m_ObjectHideFlags: 0

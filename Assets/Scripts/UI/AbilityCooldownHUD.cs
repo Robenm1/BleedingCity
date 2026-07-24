@@ -13,6 +13,10 @@ public class AbilityCooldownHUD : MonoBehaviour
         public Image cooldownFill;
         public TextMeshProUGUI cooldownText;
 
+        [Header("Optional Counter Text")]
+        [Tooltip("Used for special abilities like Punishing Ground traps. Example: +2, +1.")]
+        public TextMeshProUGUI counterText;
+
         [Header("Runtime")]
         [HideInInspector] public bool hasAbility;
         [HideInInspector] public Sprite icon;
@@ -22,11 +26,13 @@ public class AbilityCooldownHUD : MonoBehaviour
     }
 
     [Header("Target")]
-    [Tooltip("If empty, this script searches in parent first, then scene.")]
     public PlayerControls playerControls;
-
-    [Tooltip("If empty, this script searches on the player/character.")]
     public AbilityHUDData abilityHUDData;
+    public SummonEvolutionTracker summonTracker;
+
+    [Header("Special Sync")]
+    [Tooltip("Optional. If found, Ability 2 HUD uses real Hell Bomb cooldown/trap count.")]
+    public PyroAbility2 pyroAbility2;
 
     [Header("Ability 1")]
     public AbilitySlotUI ability1;
@@ -36,14 +42,23 @@ public class AbilityCooldownHUD : MonoBehaviour
 
     [Header("Settings")]
     public bool hideTextWhenReady = true;
-
-    [Tooltip("If true, changing variant does not reset the current cooldown timer.")]
     public bool keepCooldownWhenVariantChanges = true;
+
+    [Header("Debug")]
+    public bool showDebug = true;
+
+    private int _lastSummonLevel = -999;
 
     private void Awake()
     {
         CacheRefs();
+    }
+
+    private void Start()
+    {
+        CacheRefs();
         LoadAbilityData();
+        RefreshPyroTrapCounter();
     }
 
     private void OnEnable()
@@ -56,7 +71,15 @@ public class AbilityCooldownHUD : MonoBehaviour
             playerControls.OnAbility2 += HandleAbility2Pressed;
         }
 
+        if (pyroAbility2 != null)
+        {
+            pyroAbility2.OnTrapChargesChanged += HandlePyroTrapChargesChanged;
+            pyroAbility2.OnCooldownChanged += HandlePyroAbility2CooldownChanged;
+            pyroAbility2.BroadcastUI();
+        }
+
         LoadAbilityData();
+        RefreshPyroTrapCounter();
     }
 
     private void OnDisable()
@@ -66,12 +89,25 @@ public class AbilityCooldownHUD : MonoBehaviour
             playerControls.OnAbility1 -= HandleAbility1Pressed;
             playerControls.OnAbility2 -= HandleAbility2Pressed;
         }
+
+        if (pyroAbility2 != null)
+        {
+            pyroAbility2.OnTrapChargesChanged -= HandlePyroTrapChargesChanged;
+            pyroAbility2.OnCooldownChanged -= HandlePyroAbility2CooldownChanged;
+        }
     }
 
     private void Update()
     {
+        AutoUpdateVariants();
+
         UpdateSlot(ability1);
-        UpdateSlot(ability2);
+
+        // If this character has PyroAbility2, Ability 2 cooldown is driven by the real script.
+        if (pyroAbility2 == null)
+            UpdateSlot(ability2);
+        else
+            RefreshSlot(ability2);
     }
 
     private void CacheRefs()
@@ -82,14 +118,29 @@ public class AbilityCooldownHUD : MonoBehaviour
         if (playerControls == null)
             playerControls = FindObjectOfType<PlayerControls>();
 
-        if (abilityHUDData == null)
-            abilityHUDData = GetComponentInParent<AbilityHUDData>();
-
         if (abilityHUDData == null && playerControls != null)
             abilityHUDData = playerControls.GetComponent<AbilityHUDData>();
 
         if (abilityHUDData == null)
+            abilityHUDData = GetComponentInParent<AbilityHUDData>();
+
+        if (abilityHUDData == null)
             abilityHUDData = FindObjectOfType<AbilityHUDData>();
+
+        if (summonTracker == null && playerControls != null)
+            summonTracker = playerControls.GetComponent<SummonEvolutionTracker>();
+
+        if (summonTracker == null)
+            summonTracker = GetComponentInParent<SummonEvolutionTracker>();
+
+        if (summonTracker == null)
+            summonTracker = FindObjectOfType<SummonEvolutionTracker>();
+
+        if (pyroAbility2 == null && playerControls != null)
+            pyroAbility2 = playerControls.GetComponent<PyroAbility2>();
+
+        if (pyroAbility2 == null)
+            pyroAbility2 = GetComponentInParent<PyroAbility2>();
     }
 
     private void LoadAbilityData()
@@ -98,13 +149,49 @@ public class AbilityCooldownHUD : MonoBehaviour
 
         if (abilityHUDData == null)
         {
+            if (showDebug)
+                Debug.LogWarning("[AbilityCooldownHUD] No AbilityHUDData found.");
+
             ClearSlot(ability1);
             ClearSlot(ability2);
             return;
         }
 
+        if (showDebug)
+            Debug.Log($"[AbilityCooldownHUD] Loaded AbilityHUDData from: {abilityHUDData.name}");
+
         SetAbility1Variant(abilityHUDData.startingAbility1Variant);
         SetAbility2Variant(abilityHUDData.startingAbility2Variant);
+
+        _lastSummonLevel = -999;
+        AutoUpdateVariants();
+    }
+
+    private void AutoUpdateVariants()
+    {
+        if (abilityHUDData == null)
+            return;
+
+        if (summonTracker == null)
+            CacheRefs();
+
+        if (summonTracker == null)
+            return;
+
+        int level = summonTracker.currentLevel;
+
+        if (level == _lastSummonLevel)
+            return;
+
+        _lastSummonLevel = level;
+
+        int variantIndex = Mathf.Max(0, level - 1);
+
+        if (abilityHUDData.ability1FollowsSummonLevel && abilityHUDData.Ability1HasMultipleVariants())
+            SetAbility1Variant(variantIndex);
+
+        if (abilityHUDData.ability2FollowsSummonLevel && abilityHUDData.Ability2HasMultipleVariants())
+            SetAbility2Variant(variantIndex);
     }
 
     private void HandleAbility1Pressed()
@@ -114,12 +201,60 @@ public class AbilityCooldownHUD : MonoBehaviour
 
     private void HandleAbility2Pressed()
     {
+        // Normal characters: input starts cooldown.
+        // Pyro Hell Bomb: real PyroAbility2 controls cooldown because Punishing Ground has charges.
+        if (pyroAbility2 != null)
+            return;
+
         TryStartCooldown(ability2);
     }
 
-    // ─────────────────────────────────────────────
-    // Public Variant API
-    // ─────────────────────────────────────────────
+    private void HandlePyroTrapChargesChanged(int remaining, int max)
+    {
+        RefreshPyroTrapCounter();
+    }
+
+    private void HandlePyroAbility2CooldownChanged(float remaining, float duration)
+    {
+        if (ability2 == null)
+            return;
+
+        ability2.cooldown = Mathf.Max(0.01f, duration);
+        ability2.cooldownRemaining = Mathf.Max(0f, remaining);
+
+        RefreshSlot(ability2);
+        RefreshPyroTrapCounter();
+    }
+
+    private void RefreshPyroTrapCounter()
+    {
+        if (ability2 == null || ability2.counterText == null)
+            return;
+
+        if (pyroAbility2 == null)
+        {
+            ability2.counterText.gameObject.SetActive(false);
+            ability2.counterText.text = "";
+            return;
+        }
+
+        bool showCounter =
+            pyroAbility2.HasTrapCounter() &&
+            !pyroAbility2.IsOnCooldown() &&
+            ability2.hasAbility;
+
+        if (!showCounter)
+        {
+            ability2.counterText.gameObject.SetActive(false);
+            ability2.counterText.text = "";
+            return;
+        }
+
+        int remaining = pyroAbility2.GetBombsRemainingBeforeCooldown();
+
+        ability2.counterText.gameObject.SetActive(remaining > 0);
+        ability2.counterText.text = remaining > 0 ? $"+{remaining}" : "";
+    }
 
     public void SetAbility1Variant(int variantIndex)
     {
@@ -130,7 +265,7 @@ public class AbilityCooldownHUD : MonoBehaviour
             return;
 
         AbilityHUDData.AbilityHUDVariant variant = abilityHUDData.GetAbility1Variant(variantIndex);
-        AssignVariant(ability1, variant, variantIndex);
+        AssignVariant(ability1, variant, variantIndex, "Ability 1");
     }
 
     public void SetAbility2Variant(int variantIndex)
@@ -142,24 +277,32 @@ public class AbilityCooldownHUD : MonoBehaviour
             return;
 
         AbilityHUDData.AbilityHUDVariant variant = abilityHUDData.GetAbility2Variant(variantIndex);
-        AssignVariant(ability2, variant, variantIndex);
+        AssignVariant(ability2, variant, variantIndex, "Ability 2");
+
+        RefreshPyroTrapCounter();
     }
 
-    public void SetAbilityVariants(int ability1VariantIndex, int ability2VariantIndex)
-    {
-        SetAbility1Variant(ability1VariantIndex);
-        SetAbility2Variant(ability2VariantIndex);
-    }
-
-    private void AssignVariant(AbilitySlotUI slot, AbilityHUDData.AbilityHUDVariant variant, int variantIndex)
+    private void AssignVariant(AbilitySlotUI slot, AbilityHUDData.AbilityHUDVariant variant, int variantIndex, string abilityName)
     {
         if (slot == null)
             return;
 
         float oldRemaining = slot.cooldownRemaining;
 
-        if (variant == null || variant.icon == null)
+        if (variant == null)
         {
+            if (showDebug)
+                Debug.LogWarning($"[AbilityCooldownHUD] {abilityName} variant {variantIndex} is NULL.");
+
+            ClearSlot(slot);
+            return;
+        }
+
+        if (variant.icon == null)
+        {
+            if (showDebug)
+                Debug.LogWarning($"[AbilityCooldownHUD] {abilityName} variant '{variant.variantName}' has NO ICON assigned.");
+
             ClearSlot(slot);
             return;
         }
@@ -174,19 +317,22 @@ public class AbilityCooldownHUD : MonoBehaviour
         else
             slot.cooldownRemaining = 0f;
 
+        if (showDebug)
+        {
+            Debug.Log(
+                $"[AbilityCooldownHUD] Loaded {abilityName}: " +
+                $"Variant '{variant.variantName}', Icon '{variant.icon.name}', Cooldown {slot.cooldown}"
+            );
+        }
+
         RefreshSlot(slot);
     }
-
-    // ─────────────────────────────────────────────
-    // Cooldown
-    // ─────────────────────────────────────────────
 
     private void TryStartCooldown(AbilitySlotUI slot)
     {
         if (slot == null || !slot.hasAbility)
             return;
 
-        // Pressing while on cooldown will not reset it.
         if (slot.cooldownRemaining > 0f)
             return;
 
@@ -214,10 +360,6 @@ public class AbilityCooldownHUD : MonoBehaviour
         RefreshSlot(slot);
     }
 
-    // ─────────────────────────────────────────────
-    // Clear / Refresh
-    // ─────────────────────────────────────────────
-
     private void ClearSlot(AbilitySlotUI slot)
     {
         if (slot == null)
@@ -228,6 +370,12 @@ public class AbilityCooldownHUD : MonoBehaviour
         slot.cooldown = 0f;
         slot.cooldownRemaining = 0f;
         slot.currentVariantIndex = 0;
+
+        if (slot.counterText != null)
+        {
+            slot.counterText.gameObject.SetActive(false);
+            slot.counterText.text = "";
+        }
 
         RefreshSlot(slot);
     }
@@ -284,8 +432,12 @@ public class AbilityCooldownHUD : MonoBehaviour
     {
         abilityHUDData = null;
         playerControls = null;
+        summonTracker = null;
+        pyroAbility2 = null;
+        _lastSummonLevel = -999;
 
         CacheRefs();
         LoadAbilityData();
+        RefreshPyroTrapCounter();
     }
 }

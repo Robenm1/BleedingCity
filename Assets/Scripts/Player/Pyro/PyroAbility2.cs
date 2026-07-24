@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +9,9 @@ using UnityEngine;
 /// </summary>
 public class PyroAbility2 : MonoBehaviour
 {
+    public event Action<int, int> OnTrapChargesChanged;
+    public event Action<float, float> OnCooldownChanged;
+
     [Header("References")]
     public GameObject hellBombPrefab;
 
@@ -18,6 +22,7 @@ public class PyroAbility2 : MonoBehaviour
     public int bombsBeforeCooldown = 1;
 
     private float _cooldownTimer;
+    private float _currentCooldownDuration;
     private int _bombsPlantedThisCycle = 0;
 
     [Header("Debug")]
@@ -25,8 +30,6 @@ public class PyroAbility2 : MonoBehaviour
 
     private PlayerControls _controls;
     private PlayerStats _stats;
-
-    // ── Lifecycle ──────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -38,6 +41,8 @@ public class PyroAbility2 : MonoBehaviour
     {
         if (_controls != null)
             _controls.OnAbility2 += OnAbility2Pressed;
+
+        BroadcastUI();
     }
 
     private void OnDisable()
@@ -56,11 +61,12 @@ public class PyroAbility2 : MonoBehaviour
             {
                 _cooldownTimer = 0f;
                 _bombsPlantedThisCycle = 0;
+                BroadcastTrapCharges();
             }
+
+            BroadcastCooldown();
         }
     }
-
-    // ── Input handler ──────────────────────────────────────────────────────
 
     private void OnAbility2Pressed()
     {
@@ -68,13 +74,12 @@ public class PyroAbility2 : MonoBehaviour
         {
             if (showDebug)
                 Debug.Log($"[PyroAbility2] On cooldown: {_cooldownTimer:F1}s remaining.");
+
             return;
         }
 
         PlantBomb();
     }
-
-    // ── Core ───────────────────────────────────────────────────────────────
 
     private void PlantBomb()
     {
@@ -89,14 +94,14 @@ public class PyroAbility2 : MonoBehaviour
         _bombsPlantedThisCycle++;
 
         int maxBombs = Mathf.Max(1, bombsBeforeCooldown);
+        BroadcastTrapCharges();
 
         if (_bombsPlantedThisCycle >= maxBombs)
         {
-            float cd = baseCooldown * (_stats != null ? _stats.GetCooldownMultiplier() : 1f);
-            _cooldownTimer = cd;
+            StartCooldown();
 
             if (showDebug)
-                Debug.Log($"[PyroAbility2] Hell Bomb planted! Cooldown: {cd:F1}s");
+                Debug.Log($"[PyroAbility2] Hell Bomb planted! Cooldown: {_currentCooldownDuration:F1}s");
         }
         else
         {
@@ -105,11 +110,24 @@ public class PyroAbility2 : MonoBehaviour
         }
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────
+    private void StartCooldown()
+    {
+        float multiplier = _stats != null ? _stats.GetCooldownMultiplier() : 1f;
+        _currentCooldownDuration = Mathf.Max(0.01f, baseCooldown * multiplier);
+        _cooldownTimer = _currentCooldownDuration;
+
+        BroadcastCooldown();
+    }
 
     public void SetBombsBeforeCooldown(int value)
     {
         bombsBeforeCooldown = Mathf.Max(1, value);
+        _bombsPlantedThisCycle = Mathf.Clamp(_bombsPlantedThisCycle, 0, bombsBeforeCooldown);
+
+        BroadcastTrapCharges();
+
+        if (showDebug)
+            Debug.Log($"[PyroAbility2] Bombs before cooldown set to {bombsBeforeCooldown}.");
     }
 
     public int GetBombsBeforeCooldown()
@@ -117,17 +135,51 @@ public class PyroAbility2 : MonoBehaviour
         return Mathf.Max(1, bombsBeforeCooldown);
     }
 
-    // ── UI helpers ─────────────────────────────────────────────────────────
-
-    /// <summary>Returns 0..1 normalized cooldown progress.</summary>
-    public float GetCooldownNormalized()
+    public int GetBombsRemainingBeforeCooldown()
     {
-        return baseCooldown > 0f ? Mathf.Clamp01(_cooldownTimer / baseCooldown) : 0f;
+        int maxBombs = Mathf.Max(1, bombsBeforeCooldown);
+        return Mathf.Clamp(maxBombs - _bombsPlantedThisCycle, 0, maxBombs);
     }
 
-    /// <summary>Returns remaining cooldown in seconds.</summary>
+    public bool HasTrapCounter()
+    {
+        return GetBombsBeforeCooldown() > 1;
+    }
+
+    public bool IsOnCooldown()
+    {
+        return _cooldownTimer > 0f;
+    }
+
+    public float GetCooldownNormalized()
+    {
+        float duration = _currentCooldownDuration > 0f ? _currentCooldownDuration : baseCooldown;
+        return duration > 0f ? Mathf.Clamp01(_cooldownTimer / duration) : 0f;
+    }
+
     public float GetCooldownRemaining()
     {
         return Mathf.Max(0f, _cooldownTimer);
+    }
+
+    public float GetCurrentCooldownDuration()
+    {
+        return _currentCooldownDuration > 0f ? _currentCooldownDuration : baseCooldown;
+    }
+
+    public void BroadcastUI()
+    {
+        BroadcastTrapCharges();
+        BroadcastCooldown();
+    }
+
+    private void BroadcastTrapCharges()
+    {
+        OnTrapChargesChanged?.Invoke(GetBombsRemainingBeforeCooldown(), GetBombsBeforeCooldown());
+    }
+
+    private void BroadcastCooldown()
+    {
+        OnCooldownChanged?.Invoke(GetCooldownRemaining(), GetCurrentCooldownDuration());
     }
 }

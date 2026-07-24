@@ -12,16 +12,23 @@ public class AbilityHUDData : MonoBehaviour
     }
 
     [Header("Ability 1 Variants")]
-    [Tooltip("For normal characters, use only 1 element. For Pyro, add one per evolution stage.")]
+    [Tooltip("If only 1 variant exists, it stays the same. If multiple variants exist, the HUD can switch between them.")]
     public AbilityHUDVariant[] ability1Variants = new AbilityHUDVariant[1];
 
     [Header("Ability 2 Variants")]
-    [Tooltip("For normal characters, use only 1 element. For Pyro, add one per evolution stage if needed.")]
+    [Tooltip("If only 1 variant exists, it stays the same. If multiple variants exist, the HUD can switch between them.")]
     public AbilityHUDVariant[] ability2Variants = new AbilityHUDVariant[1];
 
     [Header("Starting Variant")]
     public int startingAbility1Variant = 0;
     public int startingAbility2Variant = 0;
+
+    [Header("Auto Variant Change")]
+    [Tooltip("If true, Ability 1 variant follows SummonEvolutionTracker.currentLevel when there are multiple variants.")]
+    public bool ability1FollowsSummonLevel = true;
+
+    [Tooltip("If true, Ability 2 variant follows SummonEvolutionTracker.currentLevel when there are multiple variants.")]
+    public bool ability2FollowsSummonLevel = false;
 
     public AbilityHUDVariant GetAbility1Variant(int index)
     {
@@ -31,6 +38,26 @@ public class AbilityHUDData : MonoBehaviour
     public AbilityHUDVariant GetAbility2Variant(int index)
     {
         return GetVariant(ability2Variants, index);
+    }
+
+    public int GetAbility1VariantCount()
+    {
+        return ability1Variants != null ? ability1Variants.Length : 0;
+    }
+
+    public int GetAbility2VariantCount()
+    {
+        return ability2Variants != null ? ability2Variants.Length : 0;
+    }
+
+    public bool Ability1HasMultipleVariants()
+    {
+        return GetAbility1VariantCount() > 1;
+    }
+
+    public bool Ability2HasMultipleVariants()
+    {
+        return GetAbility2VariantCount() > 1;
     }
 
     private AbilityHUDVariant GetVariant(AbilityHUDVariant[] variants, int index)
