@@ -17,6 +17,6 @@ MonoBehaviour:
   targetMaxHealthDamagePercent: 0.05
   minimumMaxHealthDamage: 0
   hitsRequiredToStun: 3
-  stunDuration: 3
+  stunDuration: 1
   resetHitsAfterStun: 1
   showDebug: 0

@@ -74,7 +74,9 @@ public class SandRepulseAbility : MonoBehaviour
         if (cooldownTimer > 0f)
         {
             cooldownTimer -= Time.deltaTime;
-            if (cooldownTimer < 0f) cooldownTimer = 0f;
+
+            if (cooldownTimer < 0f)
+                cooldownTimer = 0f;
         }
     }
 
@@ -86,7 +88,8 @@ public class SandRepulseAbility : MonoBehaviour
     /// <summary>Triggers the Sand Repulse. Called automatically via InputActionReference or manually from PlayerControls.</summary>
     public void Activate()
     {
-        if (cooldownTimer > 0f) return;
+        if (cooldownTimer > 0f)
+            return;
 
         // Cooldown scales with PlayerStats.cooldownMultiplier (e.g., 0.8 = 20% faster cooldowns).
         effectiveCooldown = cooldown * Mathf.Max(0.05f, stats.GetCooldownMultiplier());
@@ -108,27 +111,59 @@ public class SandRepulseAbility : MonoBehaviour
         for (int i = 0; i < hits.Length; i++)
         {
             var col = hits[i];
-            if (col == null) continue;
+
+            if (col == null)
+                continue;
 
             EnemyHealth eh = col.GetComponent<EnemyHealth>();
-            if (eh == null) continue;
+
+            if (eh == null)
+                continue;
 
             // Push away from Dezzo.
             Vector2 toEnemy = (Vector2)col.transform.position - center;
-            Vector2 dir = toEnemy.sqrMagnitude > 0.0001f ? toEnemy.normalized : Random.insideUnitCircle.normalized;
+            Vector2 dir = toEnemy.sqrMagnitude > 0.0001f
+                ? toEnemy.normalized
+                : Random.insideUnitCircle.normalized;
 
             var kb = col.GetComponent<KnockbackReceiver>();
-            if (kb == null) kb = col.gameObject.AddComponent<KnockbackReceiver>();
+
+            if (kb == null)
+                kb = col.gameObject.AddComponent<KnockbackReceiver>();
+
             kb.ApplyKnockback(dir, knockbackDistance, knockbackDuration);
 
             // Mark enemy so sharks prioritise it.
             var mark = col.GetComponent<EnemyMark>();
-            if (mark == null) mark = col.gameObject.AddComponent<EnemyMark>();
+
+            if (mark == null)
+                mark = col.gameObject.AddComponent<EnemyMark>();
+
             mark.SetMarked(markDuration);
         }
 
         if (showCircle)
             GetComponent<RangeCircles>()?.ShowRepulsePulse(radius);
+    }
+
+    // ─────────────────────────────────────────────
+    // Cooldown UI helpers
+    // ─────────────────────────────────────────────
+
+    public float GetCooldownRemaining()
+    {
+        return Mathf.Max(0f, cooldownTimer);
+    }
+
+    public float GetCurrentCooldownDuration()
+    {
+        return effectiveCooldown > 0f ? effectiveCooldown : cooldown;
+    }
+
+    public float GetCooldownNormalized()
+    {
+        float duration = GetCurrentCooldownDuration();
+        return duration > 0f ? Mathf.Clamp01(cooldownTimer / duration) : 0f;
     }
 
     private void OnDrawGizmosSelected()

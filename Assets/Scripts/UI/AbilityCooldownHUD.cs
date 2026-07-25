@@ -31,6 +31,9 @@ public class AbilityCooldownHUD : MonoBehaviour
     public SummonEvolutionTracker summonTracker;
 
     [Header("Special Sync")]
+    [Tooltip("Optional. If found, Ability 1 HUD uses real Sand Repulse cooldown.")]
+    public SandRepulseAbility sandRepulseAbility;
+
     [Tooltip("Optional. If found, Ability 2 HUD uses real Hell Bomb cooldown/trap count.")]
     public PyroAbility2 pyroAbility2;
 
@@ -101,9 +104,13 @@ public class AbilityCooldownHUD : MonoBehaviour
     {
         AutoUpdateVariants();
 
-        UpdateSlot(ability1);
+        SyncSandRepulseCooldown();
 
-        // If this character has PyroAbility2, Ability 2 cooldown is driven by the real script.
+        if (sandRepulseAbility == null)
+            UpdateSlot(ability1);
+        else
+            RefreshSlot(ability1);
+
         if (pyroAbility2 == null)
             UpdateSlot(ability2);
         else
@@ -135,6 +142,12 @@ public class AbilityCooldownHUD : MonoBehaviour
 
         if (summonTracker == null)
             summonTracker = FindObjectOfType<SummonEvolutionTracker>();
+
+        if (sandRepulseAbility == null && playerControls != null)
+            sandRepulseAbility = playerControls.GetComponent<SandRepulseAbility>();
+
+        if (sandRepulseAbility == null)
+            sandRepulseAbility = GetComponentInParent<SandRepulseAbility>();
 
         if (pyroAbility2 == null && playerControls != null)
             pyroAbility2 = playerControls.GetComponent<PyroAbility2>();
@@ -196,17 +209,33 @@ public class AbilityCooldownHUD : MonoBehaviour
 
     private void HandleAbility1Pressed()
     {
+        // Sand Repulse has its own real cooldown.
+        // HUD should not guess from input.
+        if (sandRepulseAbility != null)
+            return;
+
         TryStartCooldown(ability1);
     }
 
     private void HandleAbility2Pressed()
     {
-        // Normal characters: input starts cooldown.
-        // Pyro Hell Bomb: real PyroAbility2 controls cooldown because Punishing Ground has charges.
+        // Pyro Hell Bomb has its own real cooldown/trap charge logic.
+        // HUD should not guess from input.
         if (pyroAbility2 != null)
             return;
 
         TryStartCooldown(ability2);
+    }
+
+    private void SyncSandRepulseCooldown()
+    {
+        if (sandRepulseAbility == null || ability1 == null || !ability1.hasAbility)
+            return;
+
+        ability1.cooldown = Mathf.Max(0.01f, sandRepulseAbility.GetCurrentCooldownDuration());
+        ability1.cooldownRemaining = Mathf.Max(0f, sandRepulseAbility.GetCooldownRemaining());
+
+        RefreshSlot(ability1);
     }
 
     private void HandlePyroTrapChargesChanged(int remaining, int max)
@@ -433,6 +462,7 @@ public class AbilityCooldownHUD : MonoBehaviour
         abilityHUDData = null;
         playerControls = null;
         summonTracker = null;
+        sandRepulseAbility = null;
         pyroAbility2 = null;
         _lastSummonLevel = -999;
 

@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 6538601850727195419}
   - component: {fileID: 8440924064644437780}
   - component: {fileID: 3862180431503610800}
+  - component: {fileID: 7378862176267119326}
   - component: {fileID: 2960644882789890532}
   - component: {fileID: 1545714411647290351}
   - component: {fileID: -4824066855720338810}
@@ -189,6 +190,30 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &7378862176267119326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486357500185902644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cafff6ef86128a4e99773919026ee26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityHUDData
+  ability1Variants:
+  - variantName: SandRepulseAbility
+    icon: {fileID: -2763384674010482698, guid: 4cbdd41199442404698913d26f42557b, type: 3}
+    cooldown: 7
+  ability2Variants:
+  - variantName: 
+    icon: {fileID: 0}
+    cooldown: 5
+  startingAbility1Variant: 0
+  startingAbility2Variant: 0
+  ability1FollowsSummonLevel: 0
+  ability2FollowsSummonLevel: 0
 --- !u!114 &2960644882789890532
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -400,6 +425,7 @@ MonoBehaviour:
   fallbackElementSourceLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  showHealingDebug: 0
   healthSlider: {fileID: 7266356325758677685}
   healthText: {fileID: 0}
 --- !u!114 &5758882080159495574
@@ -415,6 +441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuffManager
   maxHpPolicy: 0
+  showHealDebug: 0
 --- !u!114 &6355883200721823093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -487,7 +514,7 @@ MonoBehaviour:
   enemyLayers:
     serializedVersion: 2
     m_Bits: 8
-  cooldown: 5
+  cooldown: 7
   vfxDuration: 0.9167
   castVfxPrefab: {fileID: 134285581747331058, guid: 7b04bb913f0ad5a41bac75d97c9ebcfd, type: 3}
   showCircle: 1
@@ -773,9 +800,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0da44b9f57bbc104f86d5c8d1aeb871b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActiveCardInputRouter
-  active1Effect: {fileID: 0}
-  active2Effect: {fileID: 0}
+  active1:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  active2:
+    effect: {fileID: 0}
+    cardIcon: {fileID: 0}
+    cooldown: 5
+  activeCardHUD: {fileID: 0}
   pollInputDirectly: 1
+  startHudCooldownOnActivate: 1
   showDebug: 1
 --- !u!1 &1153819881862538775
 GameObject:
