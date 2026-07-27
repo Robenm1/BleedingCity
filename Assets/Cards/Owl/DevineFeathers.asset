@@ -13,12 +13,9 @@ MonoBehaviour:
   m_Name: DevineFeathers
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   displayName: Divine Feathers
-  description: 'When HP drops below 10%, a one-time feather swarm surrounds you,
-    reducing damage taken and healing over time.
-
-    Once you reach 50% HP, the
-    feathers shoot outward, damaging enemies, and can be recalled with your first
-    ability.'
+  description: Below 10% HP, summon rotating feathers that protect you and heal over
+    time. They can be shot with your first ability, or automatically fire outward
+    once you reach 50 HP, then behave like normal Owl feathers that can be recalled.
   icon: {fileID: 3041566381158898023, guid: 33ffe8a2a1c0e4b4688ba82890a1e186, type: 3}
   isGlobal: 0
   isActive: 0

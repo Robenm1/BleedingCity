@@ -3,23 +3,66 @@ using UnityEngine;
 
 public class DeckRuntimeApplier : MonoBehaviour
 {
+    [Header("Runtime Deck")]
+    [Tooltip("The cards selected before the run. Used by UI and reapplied effects.")]
+    public List<CardData> selectedCards = new List<CardData>();
+
     /// <summary>
     /// Called by PlayerSpawnAnchor with the deck (List<CardData>).
-    /// Applies all CardEffectSO in each card.
+    /// Stores the deck and applies all CardEffectSO in each card.
     /// </summary>
-    public void ReapplyFrom(List<CardData> selectedCards)
+    public void ReapplyFrom(List<CardData> cards)
     {
-        if (selectedCards == null) return;
+        selectedCards.Clear();
 
-        foreach (var card in selectedCards)
+        if (cards == null)
+            return;
+
+        for (int i = 0; i < cards.Count; i++)
         {
-            if (card == null || card.effects == null) continue;
+            if (cards[i] != null)
+                selectedCards.Add(cards[i]);
+        }
 
-            foreach (var effect in card.effects)
+        ApplySelectedCards();
+
+        RefreshCardsPanelUI();
+    }
+
+    private void ApplySelectedCards()
+    {
+        for (int i = 0; i < selectedCards.Count; i++)
+        {
+            CardData card = selectedCards[i];
+
+            if (card == null || card.effects == null)
+                continue;
+
+            for (int j = 0; j < card.effects.Count; j++)
             {
-                if (effect == null) continue;
+                CardEffectSO effect = card.effects[j];
+
+                if (effect == null)
+                    continue;
+
                 effect.Apply(gameObject);
             }
         }
+    }
+
+    private void RefreshCardsPanelUI()
+    {
+        SelectedCardsPanelUI panel = GetComponentInChildren<SelectedCardsPanelUI>(true);
+
+        if (panel == null)
+            panel = FindObjectOfType<SelectedCardsPanelUI>(true);
+
+        if (panel != null)
+            panel.Refresh();
+    }
+
+    public List<CardData> GetSelectedCards()
+    {
+        return selectedCards;
     }
 }
