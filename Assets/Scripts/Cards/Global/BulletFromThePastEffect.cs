@@ -20,7 +20,7 @@ public class BulletFromThePastEffect : MonoBehaviour
     [Tooltip("Bullet projectile prefab.")]
     public GameObject bulletPrefab;
 
-    [Tooltip("Fire one bullet every X successful enemy hits.")]
+    [Tooltip("Fire one bullet every X real enemy hits.")]
     public int attacksRequired = 5;
 
     [Header("Targeting")]
@@ -73,44 +73,48 @@ public class BulletFromThePastEffect : MonoBehaviour
 
     private void Register()
     {
-        if (_registered) return;
+        if (_registered)
+            return;
 
         if (!_stats)
             _stats = GetComponent<PlayerStats>();
 
-        EnemyHealth.OnAnyEnemyDamaged += HandleEnemyDamaged;
+        EnemyHealth.OnAnyEnemyHit += HandleEnemyHit;
         _registered = true;
 
         if (showDebug)
-            Debug.Log("[BulletFromThePastEffect] Registered to enemy damage.");
+            Debug.Log("[BulletFromThePastEffect] Registered to real enemy hits.");
     }
 
     private void Unregister()
     {
-        if (!_registered) return;
+        if (!_registered)
+            return;
 
-        EnemyHealth.OnAnyEnemyDamaged -= HandleEnemyDamaged;
+        EnemyHealth.OnAnyEnemyHit -= HandleEnemyHit;
         _registered = false;
     }
 
-    private void HandleEnemyDamaged(EnemyHealth enemy, float damage)
+    private void HandleEnemyHit(EnemyHealth enemy)
     {
-        if (enemy == null) return;
-        if (damage <= 0f) return;
+        if (enemy == null)
+            return;
 
-        // Important:
         // Do not let Bullet from the Past explosion damage charge another bullet.
         if (IsBulletDamageInProgress)
             return;
 
         // Do not count Abyssal Doll as a real enemy hit.
-        if (enemy.GetComponent<AbyssalDollObject>() != null) return;
-        if (enemy.GetComponentInParent<AbyssalDollObject>() != null) return;
+        if (enemy.GetComponent<AbyssalDollObject>() != null)
+            return;
+
+        if (enemy.GetComponentInParent<AbyssalDollObject>() != null)
+            return;
 
         _attackCounter++;
 
         if (showDebug)
-            Debug.Log($"[BulletFromThePastEffect] Hit count: {_attackCounter}/{attacksRequired}");
+            Debug.Log($"[BulletFromThePastEffect] Real hit count: {_attackCounter}/{attacksRequired}");
 
         if (_attackCounter < Mathf.Max(1, attacksRequired))
             return;
@@ -145,6 +149,7 @@ public class BulletFromThePastEffect : MonoBehaviour
         obj.transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
         var projectile = obj.GetComponent<BulletFromThePastProjectile>();
+
         if (!projectile)
         {
             Debug.LogWarning("[BulletFromThePastEffect] Bullet prefab missing BulletFromThePastProjectile.");
@@ -188,14 +193,22 @@ public class BulletFromThePastEffect : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            if (hit == null) continue;
+            if (hit == null)
+                continue;
 
             var enemy = hit.GetComponent<EnemyHealth>();
-            if (enemy == null) enemy = hit.GetComponentInParent<EnemyHealth>();
-            if (enemy == null) continue;
 
-            if (enemy.GetComponent<AbyssalDollObject>() != null) continue;
-            if (enemy.GetComponentInParent<AbyssalDollObject>() != null) continue;
+            if (enemy == null)
+                enemy = hit.GetComponentInParent<EnemyHealth>();
+
+            if (enemy == null)
+                continue;
+
+            if (enemy.GetComponent<AbyssalDollObject>() != null)
+                continue;
+
+            if (enemy.GetComponentInParent<AbyssalDollObject>() != null)
+                continue;
 
             float distSqr = ((Vector2)enemy.transform.position - (Vector2)fromPosition).sqrMagnitude;
 

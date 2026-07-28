@@ -72,6 +72,13 @@ public class DummyHealth : EnemyHealth
 
     public override void TakeDamageFromSource(GameObject damageSource, float dmg)
     {
+        if (dmg <= 0f)
+            return;
+
+        // Important:
+        // Count the real hit before Death Touch converts it to DoT.
+        NotifyEnemyHit();
+
         if (DeathTouchEffect.TryConvertToDot(this, dmg))
             return;
 
@@ -85,22 +92,24 @@ public class DummyHealth : EnemyHealth
 
     public override void TakeDamageDirectFromSource(GameObject damageSource, float dmg)
     {
-        if (dmg <= 0f) return;
+        if (dmg <= 0f)
+            return;
 
         dmg = ApplySourceElementDirectDamage(damageSource, dmg);
-
         dmg = ApplyTargetElementResistance(damageSource, dmg);
-
         dmg = ApplyOwnElementIncomingDamage(damageSource, dmg);
 
         dmg *= _vulnMul;
 
         var frosted = GetComponent<FrostedOnEnemy>();
+
         if (frosted != null && frosted.IsActive)
             dmg *= frosted.vulnerabilityMultiplier;
 
         float finalDamage = Mathf.Max(0f, dmg);
-        if (finalDamage <= 0f) return;
+
+        if (finalDamage <= 0f)
+            return;
 
         Color popupColor = GetDamageSourceColor(damageSource);
 
@@ -158,14 +167,16 @@ public class DummyHealth : EnemyHealth
 
     private void UpdateDamageCounter()
     {
-        if (damageCounterText == null) return;
+        if (damageCounterText == null)
+            return;
 
         damageCounterText.SetText(Mathf.RoundToInt(_totalDamage).ToString());
     }
 
     private void UpdateCounterTextPosition()
     {
-        if (damageCounterText == null || !_basePosCaptured) return;
+        if (damageCounterText == null || !_basePosCaptured)
+            return;
 
         bool hasMarks = MarkDisplay != null && MarkDisplay.ActiveMarkCount > 0;
         float targetY = _baseCounterTextPos.y + (hasMarks ? markTextYOffset : 0f);
