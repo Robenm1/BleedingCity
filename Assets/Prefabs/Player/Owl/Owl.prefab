@@ -226,7 +226,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 193aafd9c5154c8429edd27ea5c3c48e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElementHolder
-  element: {fileID: 11400000, guid: 06cf85d6ba86e0e4da9393e95474e141, type: 2}
+  element: {fileID: 11400000, guid: 53c1dd84d059b754db8564920f833009, type: 2}
   applyOnStart: 1
   removeOnDisable: 1
   showDebug: 1
